@@ -49,7 +49,7 @@ export const DocumentItem: React.FC<DocumentItemProps> = ({ document, onDelete, 
         )}
       </View>
       <View style={styles.actions}>
-        {document.category === 'boarding_pass' && (
+        {document.qrCode && (
           <View style={styles.qrBadge}>
             <Text style={styles.qrBadgeText}>QR</Text>
           </View>

@@ -110,6 +110,7 @@ export interface TripDocument {
   fileType?: DocumentFileType;
   notes?: string;
   date?: string;
+  qrCode?: string;
   createdAt: string;
   updatedAt: string;
 }

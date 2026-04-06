@@ -2,11 +2,13 @@
 // Document vault with file upload: camera, photo library, PDF picker
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, Image, TextInput } from 'react-native';
+import * as Sharing from 'expo-sharing';
 import { infoAlert } from '../../utils/alert';
 import colors from '../../theme/colors';
 import { Button } from '../ui/Button';
 import { DocumentItem } from './DocumentItem';
+import { QRCodeModal } from './QRCodeModal';
 import {
   TripDocument,
   DocumentCategory,
@@ -28,6 +30,8 @@ export const DocumentVault: React.FC<DocumentVaultProps> = ({ tripId, documents 
   const [selectedCategory, setSelectedCategory] = useState<DocumentCategory | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [previewUri, setPreviewUri] = useState<string | null>(null);
+  const [qrInput, setQrInput] = useState('');
+  const [qrModal, setQrModal] = useState<{ title: string; value: string } | null>(null);
 
   const handleSelectCategory = (category: DocumentCategory) => {
     setSelectedCategory(category);
@@ -67,10 +71,12 @@ export const DocumentVault: React.FC<DocumentVaultProps> = ({ tripId, documents 
         fileUri: file.uri,
         fileType: file.fileType,
         notes: file.fileName,
+        qrCode: qrInput.trim() || undefined,
       });
 
       setSelectedCategory(null);
       setShowAddForm(false);
+      setQrInput('');
       infoAlert('Document Added', `${categoryInfo.label} saved successfully.`);
     } catch (error: any) {
       const msg = error?.message || 'Failed to pick file';
@@ -95,9 +101,11 @@ export const DocumentVault: React.FC<DocumentVaultProps> = ({ tripId, documents 
       category: selectedCategory,
       title,
       notes: 'Metadata only — no file attached',
+      qrCode: qrInput.trim() || undefined,
     });
     setSelectedCategory(null);
     setShowAddForm(false);
+    setQrInput('');
   };
 
   const handleDeleteDocument = async (documentId: string) => {
@@ -108,20 +116,40 @@ export const DocumentVault: React.FC<DocumentVaultProps> = ({ tripId, documents 
     removeDocument(tripId, documentId);
   };
 
-  const handleViewDocument = (document: TripDocument) => {
+  const handleViewDocument = async (document: TripDocument) => {
+    // Image preview
     if (document.fileUri && document.fileType === 'image') {
       setPreviewUri(document.fileUri);
       return;
     }
 
+    // PDF: open with share sheet
+    if (document.fileUri && document.fileType === 'pdf') {
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(document.fileUri, {
+          mimeType: 'application/pdf',
+          dialogTitle: document.title,
+        });
+      } else {
+        infoAlert('Cannot Open', 'PDF sharing is not available on this device.');
+      }
+      return;
+    }
+
+    // Boarding pass with QR
+    if (document.qrCode) {
+      setQrModal({ title: document.title, value: document.qrCode });
+      return;
+    }
+
+    // Fallback: metadata alert
     const categoryInfo = DOCUMENT_CATEGORIES[document.category];
     const parts = [
-      `Category: ${categoryInfo.label}`,
-      document.fileUri ? `File: ${document.fileType?.toUpperCase() || 'Attached'}` : 'No file attached',
       document.notes ? `Notes: ${document.notes}` : null,
+      !document.fileUri ? 'No file attached' : null,
     ].filter(Boolean);
-
-    infoAlert(document.title, parts.join('\n'));
+    infoAlert(document.title, parts.join('\n') || categoryInfo.label);
   };
 
   // Group documents by category
@@ -213,11 +241,31 @@ export const DocumentVault: React.FC<DocumentVaultProps> = ({ tripId, documents 
             </TouchableOpacity>
           </View>
 
+          {/* QR code input for boarding passes */}
+          {selectedCategory === 'boarding_pass' && (
+            <View style={styles.qrInputContainer}>
+              <Text style={styles.qrInputLabel}>📱 QR Code text (optional)</Text>
+              <TextInput
+                style={styles.qrInput}
+                value={qrInput}
+                onChangeText={setQrInput}
+                placeholder="Paste booking code or URL..."
+                placeholderTextColor={colors.textTertiary}
+                multiline={false}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <Text style={styles.qrInputHint}>
+                The QR will be shown when you tap the document.
+              </Text>
+            </View>
+          )}
+
           <TouchableOpacity onPress={handleAddMetadataOnly} style={styles.metadataLink}>
             <Text style={styles.metadataLinkText}>Add without file (metadata only)</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => setSelectedCategory(null)} style={styles.backLink}>
+          <TouchableOpacity onPress={() => { setSelectedCategory(null); setQrInput(''); }} style={styles.backLink}>
             <Text style={styles.backLinkText}>← Back to categories</Text>
           </TouchableOpacity>
 
@@ -248,6 +296,16 @@ export const DocumentVault: React.FC<DocumentVaultProps> = ({ tripId, documents 
             />
           ))}
         </View>
+      )}
+
+      {/* QR Code Modal */}
+      {qrModal && (
+        <QRCodeModal
+          visible={!!qrModal}
+          title={qrModal.title}
+          qrValue={qrModal.value}
+          onClose={() => setQrModal(null)}
+        />
       )}
 
       {/* Image Preview Modal (simple) */}
@@ -307,6 +365,35 @@ const styles = StyleSheet.create({
   },
   uploadIcon: { fontSize: 28 },
   uploadLabel: { fontSize: 11, fontWeight: '600', color: colors.primary },
+  qrInputContainer: {
+    backgroundColor: colors.background,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 12,
+    marginBottom: 12,
+  },
+  qrInputLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  qrInput: {
+    fontSize: 13,
+    color: colors.text,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: colors.backgroundSecondary,
+  },
+  qrInputHint: {
+    fontSize: 11,
+    color: colors.textTertiary,
+    marginTop: 6,
+  },
   metadataLink: { marginTop: 4 },
   metadataLinkText: { fontSize: 12, color: colors.textTertiary, textAlign: 'center' },
   backLink: { marginTop: 8 },
