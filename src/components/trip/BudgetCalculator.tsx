@@ -9,8 +9,8 @@ import { Trip, BudgetCategories, ConfirmedPrice, Currency, PriceSourceType } fro
 import { Card } from '../ui/Card';
 import { DeepLinkPreScreen } from '../ui/DeepLinkPreScreen';
 import colors from '../../theme/colors';
-import { formatCurrency, formatWithFx } from '../../utils/currency';
-import { CURRENCY_NAMES, CATEGORY_LABELS } from '../../utils/constants';
+import { formatWithFx } from '../../utils/currency';
+import { CATEGORY_LABELS } from '../../utils/constants';
 import {
   calculateTripSummaryWithConfirmed,
   calculateCategoryTotals,
@@ -24,6 +24,9 @@ import {
 import { convert } from '../../services/fxService';
 import { infoAlert } from '../../utils/alert';
 import { useTripStore, useSettingsStore } from '../../store';
+import { useTranslation } from '../../i18n';
+import { getAirportOptions, getAirportLabel } from '../../services/airports';
+import { SearchableSelect } from '../ui/SearchableSelect';
 
 interface BudgetCalculatorProps {
   trip: Trip;
@@ -35,20 +38,22 @@ const ProvenanceBadge: React.FC<{
   providerName?: string;
   timestamp?: string;
 }> = ({ sourceType, providerName, timestamp }) => {
+  const { t } = useTranslation();
+
   if (sourceType === 'USER_CONFIRMED') {
     return (
       <View>
         <View style={styles.badgeRow}>
           <View style={[styles.badge, { backgroundColor: '#DCFCE7' }]}>
-            <Text style={[styles.badgeText, { color: '#166534' }]}>Confirmed</Text>
+            <Text style={[styles.badgeText, { color: '#166534' }]}>{t.trip.confirmed}</Text>
           </View>
           {providerName && (
-            <Text style={styles.confirmedSource}>via {providerName}</Text>
+            <Text style={styles.confirmedSource}>{t.common.via} {providerName}</Text>
           )}
         </View>
         {timestamp && (
           <Text style={styles.confirmedDate}>
-            Last checked: {format(new Date(timestamp), 'MMM dd, yyyy')}
+            {t.trip.lastChecked}: {format(new Date(timestamp), 'MMM dd, yyyy')}
           </Text>
         )}
       </View>
@@ -58,9 +63,9 @@ const ProvenanceBadge: React.FC<{
   return (
     <View style={styles.badgeRow}>
       <View style={[styles.badge, { backgroundColor: '#FEF3C7' }]}>
-        <Text style={[styles.badgeText, { color: '#92400E' }]}>Estimated</Text>
+        <Text style={[styles.badgeText, { color: '#92400E' }]}>{t.trip.estimated}</Text>
       </View>
-      <Text style={styles.estimatedHint}>from city data</Text>
+      <Text style={styles.estimatedHint}>{t.trip.fromCityData}</Text>
     </View>
   );
 };
@@ -110,7 +115,8 @@ export const BudgetCalculator: React.FC<BudgetCalculatorProps> = ({ trip }) => {
   const [confirmingFlight, setConfirmingFlight] = useState(false);
   const [flightAmount, setFlightAmount] = useState('');
   const [flightSource, setFlightSource] = useState('');
-  const [originCity, setOriginCity] = useState(trip.originCity || '');
+  const [originIATA, setOriginIATA] = useState(trip.originIATA || '');
+  const airportOptions = getAirportOptions();
 
   // --- DeepLink pre-screen state ---
   const [preScreenVisible, setPreScreenVisible] = useState(false);
@@ -153,23 +159,23 @@ export const BudgetCalculator: React.FC<BudgetCalculatorProps> = ({ trip }) => {
     provider: { id: string; name: string; icon: string },
     url: string
   ) => {
+    const iata = originIATA || trip.originIATA || '';
+    const fromLabel = iata ? getAirportLabel(iata) : '(not set)';
     const params = [
-      { label: 'From', value: originCity || '(not set)' },
+      { label: 'From', value: fromLabel },
+      { label: 'IATA', value: iata || '—' },
       { label: 'To', value: `${trip.city}, ${trip.country}` },
       { label: 'Depart', value: format(trip.startDate, 'MMM dd, yyyy') },
       { label: 'Return', value: format(trip.endDate, 'MMM dd, yyyy') },
       { label: 'Passengers', value: String(trip.numberOfPeople) },
     ];
-    const limitations = provider.id === 'google_flights'
-      ? 'Google Flights may not always preserve date parameters from deep links. If dates appear wrong, manually adjust them on the page, or use Skyscanner/Kayak instead.'
-      : undefined;
-    handleOpenProvider(url, provider.name, provider.icon, params, limitations);
+    handleOpenProvider(url, provider.name, provider.icon, params);
   };
 
   const handleConfirmPrice = (category: keyof BudgetCategories) => {
     const amount = parseFloat(confirmAmount);
     if (isNaN(amount) || amount <= 0) {
-      infoAlert('Invalid Amount', 'Please enter a valid price per day, per person');
+      infoAlert(t.trip.invalidAmountTitle, t.trip.invalidAmountCategoryMsg);
       return;
     }
 
@@ -205,11 +211,12 @@ export const BudgetCalculator: React.FC<BudgetCalculatorProps> = ({ trip }) => {
   const handleConfirmFlight = () => {
     const amount = parseFloat(flightAmount);
     if (isNaN(amount) || amount <= 0) {
-      infoAlert('Invalid Amount', 'Please enter the total flight cost (round trip, all passengers)');
+      infoAlert(t.trip.invalidAmountTitle, t.trip.totalFlightCost);
       return;
     }
     updateTrip(trip.id, {
-      originCity: originCity || undefined,
+      originIATA: originIATA || undefined,
+      originCity: originIATA ? getAirportLabel(originIATA) : undefined,
       flightBudget: {
         estimated: trip.flightBudget?.estimated ?? 0,
         confirmed: {
@@ -232,11 +239,16 @@ export const BudgetCalculator: React.FC<BudgetCalculatorProps> = ({ trip }) => {
     }
   };
 
-  const handleSaveOriginCity = () => {
-    if (originCity !== trip.originCity) {
-      updateTrip(trip.id, { originCity: originCity || undefined });
+  const handleSaveOriginCity = (val: string) => {
+    if (val !== trip.originIATA) {
+      updateTrip(trip.id, {
+        originIATA: val || undefined,
+        originCity: val ? getAirportLabel(val) : undefined,
+      });
     }
   };
+
+  const { t } = useTranslation();
 
   const flightCost = trip.flightBudget?.confirmed?.amount ?? trip.flightBudget?.estimated ?? 0;
   const grandTotal = summary.totalAverage + flightCost;
@@ -272,23 +284,21 @@ export const BudgetCalculator: React.FC<BudgetCalculatorProps> = ({ trip }) => {
 
       {/* Summary Card */}
       <Card style={styles.summaryCard}>
-        <Text style={styles.sectionTitle}>Trip Summary</Text>
+        <Text style={styles.sectionTitle}>{t.trip.tripSummary}</Text>
 
         <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Duration</Text>
-          <Text style={styles.summaryValue}>{summary.numberOfDays} days</Text>
+          <Text style={styles.summaryLabel}>{t.trip.duration}</Text>
+          <Text style={styles.summaryValue}>{t.trip.days(summary.numberOfDays)}</Text>
         </View>
         <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Travelers</Text>
-          <Text style={styles.summaryValue}>
-            {trip.numberOfPeople} {trip.numberOfPeople > 1 ? 'people' : 'person'}
-          </Text>
+          <Text style={styles.summaryLabel}>{t.trip.travelers}</Text>
+          <Text style={styles.summaryValue}>{t.trip.people(trip.numberOfPeople)}</Text>
         </View>
 
         <View style={styles.divider} />
 
         <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>Total Budget Range</Text>
+          <Text style={styles.totalLabel}>{t.trip.totalBudget}</Text>
           <View style={styles.totalRange}>
             <Text style={styles.rangeValue}>{fmtFx(summary.totalMin)}</Text>
             <Text style={styles.rangeSeparator}>-</Text>
@@ -297,18 +307,18 @@ export const BudgetCalculator: React.FC<BudgetCalculatorProps> = ({ trip }) => {
         </View>
 
         <View style={styles.averageRow}>
-          <Text style={styles.averageLabel}>Average Estimate</Text>
+          <Text style={styles.averageLabel}>{t.trip.averageEstimate}</Text>
           <Text style={styles.averageValue}>{fmtFx(summary.totalAverage)}</Text>
         </View>
 
         <View style={styles.perDayRow}>
-          <Text style={styles.perDayLabel}>Per Day Average</Text>
+          <Text style={styles.perDayLabel}>{t.trip.perDayAverage}</Text>
           <Text style={styles.perDayValue}>{fmtFx(summary.dailyAverage)}</Text>
         </View>
 
         {trip.numberOfPeople > 1 && (
           <View style={styles.perPersonRow}>
-            <Text style={styles.perPersonLabel}>Per Person Total</Text>
+            <Text style={styles.perPersonLabel}>{t.trip.perPersonTotal}</Text>
             <Text style={styles.perPersonValue}>{fmtFx(summary.perPersonAverage)}</Text>
           </View>
         )}
@@ -318,7 +328,7 @@ export const BudgetCalculator: React.FC<BudgetCalculatorProps> = ({ trip }) => {
       {flightCost > 0 && (
         <Card style={styles.summaryCard}>
           <View style={styles.averageRow}>
-            <Text style={styles.averageLabel}>Grand Total (incl. Flights)</Text>
+            <Text style={styles.averageLabel}>{t.trip.grandTotal}</Text>
             <Text style={styles.averageValue}>{fmtFx(grandTotal)}</Text>
           </View>
         </Card>
@@ -326,7 +336,7 @@ export const BudgetCalculator: React.FC<BudgetCalculatorProps> = ({ trip }) => {
 
       {/* Category Breakdown */}
       <Card style={styles.breakdownCard}>
-        <Text style={styles.sectionTitle}>Budget Breakdown</Text>
+        <Text style={styles.sectionTitle}>{t.trip.budgetBreakdown}</Text>
 
         {(Object.keys(categoryTotals) as Array<keyof typeof categoryTotals>).map((key) => {
           const category = categoryTotals[key];
@@ -340,7 +350,7 @@ export const BudgetCalculator: React.FC<BudgetCalculatorProps> = ({ trip }) => {
           return (
             <View key={key} style={styles.categorySection}>
               <View style={styles.categoryRow}>
-                <Text style={styles.categoryLabel}>{CATEGORY_LABELS[key]}</Text>
+                <Text style={styles.categoryLabel}>{t.categories[key as keyof typeof t.categories] ?? CATEGORY_LABELS[key]}</Text>
                 <View style={styles.categoryValues}>
                   {confirmed ? (
                     <View style={styles.confirmedBlock}>
@@ -349,7 +359,7 @@ export const BudgetCalculator: React.FC<BudgetCalculatorProps> = ({ trip }) => {
                       </Text>
                       {isAccommodation && (
                         <Text style={styles.perNightText}>
-                          {fmtFx(perNightConfirmed)}/night
+                          {fmtFx(perNightConfirmed)}{t.trip.perNight}
                         </Text>
                       )}
                       <ProvenanceBadge
@@ -368,7 +378,7 @@ export const BudgetCalculator: React.FC<BudgetCalculatorProps> = ({ trip }) => {
                       </Text>
                       {isAccommodation && (
                         <Text style={styles.perNightText}>
-                          ~{fmtFx(perNight)}/night
+                          ~{fmtFx(perNight)}{t.trip.perNight}
                         </Text>
                       )}
                       <ProvenanceBadge sourceType="HEURISTIC" />
@@ -380,7 +390,7 @@ export const BudgetCalculator: React.FC<BudgetCalculatorProps> = ({ trip }) => {
               {/* Accommodation disclaimer */}
               {isAccommodation && !confirmed && (
                 <Text style={styles.disclaimerText}>
-                  Prices may not include local taxes or cleaning fees. Verify on provider site.
+                  {t.trip.accommodationDisclaimer}
                 </Text>
               )}
 
@@ -408,7 +418,7 @@ export const BudgetCalculator: React.FC<BudgetCalculatorProps> = ({ trip }) => {
               <View style={styles.actionRow}>
                 {confirmed ? (
                   <TouchableOpacity onPress={() => handleRemoveConfirmed(key)}>
-                    <Text style={styles.removeConfirmed}>Remove confirmed price</Text>
+                    <Text style={styles.removeConfirmed}>{t.trip.removeConfirmed}</Text>
                   </TouchableOpacity>
                 ) : (
                   <TouchableOpacity onPress={() => {
@@ -417,7 +427,7 @@ export const BudgetCalculator: React.FC<BudgetCalculatorProps> = ({ trip }) => {
                     setConfirmSource('');
                   }}>
                     <Text style={styles.confirmLink}>
-                      {isConfirming ? 'Cancel' : 'Confirm a price'}
+                      {isConfirming ? t.trip.cancel : t.trip.confirmPrice}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -430,7 +440,7 @@ export const BudgetCalculator: React.FC<BudgetCalculatorProps> = ({ trip }) => {
                     style={styles.confirmInput}
                     value={confirmAmount}
                     onChangeText={setConfirmAmount}
-                    placeholder={isAccommodation ? 'Price/night/person' : 'Price/day/person'}
+                    placeholder={isAccommodation ? t.trip.pricePerNight : t.trip.pricePerDay}
                     placeholderTextColor={colors.textTertiary}
                     keyboardType="decimal-pad"
                   />
@@ -438,14 +448,14 @@ export const BudgetCalculator: React.FC<BudgetCalculatorProps> = ({ trip }) => {
                     style={styles.confirmInput}
                     value={confirmSource}
                     onChangeText={setConfirmSource}
-                    placeholder="Source (e.g. Booking.com)"
+                    placeholder={t.trip.source}
                     placeholderTextColor={colors.textTertiary}
                   />
                   <TouchableOpacity
                     style={styles.confirmButton}
                     onPress={() => handleConfirmPrice(key)}
                   >
-                    <Text style={styles.confirmButtonText}>Confirm</Text>
+                    <Text style={styles.confirmButtonText}>{t.trip.confirm}</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -456,20 +466,17 @@ export const BudgetCalculator: React.FC<BudgetCalculatorProps> = ({ trip }) => {
 
       {/* Flights (One-time) */}
       <Card style={styles.breakdownCard}>
-        <Text style={styles.sectionTitle}>Flights (One-time)</Text>
+        <Text style={styles.sectionTitle}>{t.trip.flights}</Text>
 
-        {/* Origin City Input */}
-        <View style={styles.originRow}>
-          <Text style={styles.originLabel}>Flying from:</Text>
-          <TextInput
-            style={styles.originInput}
-            value={originCity}
-            onChangeText={setOriginCity}
-            onBlur={handleSaveOriginCity}
-            placeholder="Your departure city"
-            placeholderTextColor={colors.textTertiary}
-          />
-        </View>
+        {/* Origin Airport SearchableSelect */}
+        <SearchableSelect
+          label={t.trip.flyingFrom}
+          value={originIATA}
+          options={airportOptions}
+          onChange={(val) => { setOriginIATA(val); handleSaveOriginCity(val); }}
+          placeholder={t.trip.departurePlaceholder}
+          searchPlaceholder={t.create.searchAirportCode}
+        />
 
         {trip.flightBudget?.confirmed ? (
           <View style={styles.confirmedBlock}>
@@ -490,16 +497,16 @@ export const BudgetCalculator: React.FC<BudgetCalculatorProps> = ({ trip }) => {
             <ProvenanceBadge sourceType="HEURISTIC" />
           </View>
         ) : (
-          <Text style={styles.noFlightText}>
-            No flight budget set. Check providers below and confirm your price.
-          </Text>
+          <Text style={styles.noFlightText}>{t.trip.noFlightSet}</Text>
         )}
 
         {/* Flight provider deep links (via pre-screen) */}
         <View style={styles.providerRow}>
           {FLIGHT_PROVIDERS.map(provider => {
+            const iata = originIATA || trip.originIATA;
             const url = provider.getSearchUrl(
-              trip.city, trip.country, trip.startDate, trip.endDate, trip.numberOfPeople
+              trip.city, trip.country, trip.startDate, trip.endDate, trip.numberOfPeople,
+              iata, iata ? getAirportLabel(iata) : trip.originCity
             );
             return (
               <TouchableOpacity
@@ -518,7 +525,7 @@ export const BudgetCalculator: React.FC<BudgetCalculatorProps> = ({ trip }) => {
         <View style={styles.actionRow}>
           {trip.flightBudget?.confirmed ? (
             <TouchableOpacity onPress={handleRemoveFlightConfirmed}>
-              <Text style={styles.removeConfirmed}>Remove confirmed price</Text>
+              <Text style={styles.removeConfirmed}>{t.trip.removeConfirmed}</Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity onPress={() => {
@@ -527,7 +534,7 @@ export const BudgetCalculator: React.FC<BudgetCalculatorProps> = ({ trip }) => {
               setFlightSource('');
             }}>
               <Text style={styles.confirmLink}>
-                {confirmingFlight ? 'Cancel' : 'Confirm flight price'}
+                {confirmingFlight ? t.trip.cancel : t.trip.confirmFlightPrice}
               </Text>
             </TouchableOpacity>
           )}
@@ -539,7 +546,7 @@ export const BudgetCalculator: React.FC<BudgetCalculatorProps> = ({ trip }) => {
               style={styles.confirmInput}
               value={flightAmount}
               onChangeText={setFlightAmount}
-              placeholder="Total flight cost (round trip, all passengers)"
+              placeholder={t.trip.totalFlightCost}
               placeholderTextColor={colors.textTertiary}
               keyboardType="decimal-pad"
             />
@@ -547,14 +554,14 @@ export const BudgetCalculator: React.FC<BudgetCalculatorProps> = ({ trip }) => {
               style={styles.confirmInput}
               value={flightSource}
               onChangeText={setFlightSource}
-              placeholder="Source (e.g. Google Flights)"
+              placeholder={t.trip.source}
               placeholderTextColor={colors.textTertiary}
             />
             <TouchableOpacity
               style={styles.confirmButton}
               onPress={handleConfirmFlight}
             >
-              <Text style={styles.confirmButtonText}>Confirm</Text>
+              <Text style={styles.confirmButtonText}>{t.trip.confirm}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -653,17 +660,6 @@ const styles = StyleSheet.create({
   badgeText: { fontSize: 9, fontWeight: '700' },
   estimatedHint: { fontSize: 9, color: colors.textTertiary, fontStyle: 'italic' },
   noFlightText: { fontSize: 13, color: colors.textTertiary, fontStyle: 'italic' },
-  // Origin city
-  originRow: {
-    flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 8,
-  },
-  originLabel: { fontSize: 13, color: colors.textSecondary, fontWeight: '500' },
-  originInput: {
-    flex: 1, backgroundColor: colors.backgroundSecondary, borderRadius: 8,
-    paddingHorizontal: 10, paddingVertical: 6, fontSize: 13, color: colors.text,
-    borderWidth: 1, borderColor: colors.border,
-    ...Platform.select({ web: { outlineStyle: 'none' } as any, default: {} }),
-  },
   // Provider chips
   providerRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 8, gap: 6 },
   providerChip: {

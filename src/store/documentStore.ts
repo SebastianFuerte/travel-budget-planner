@@ -22,6 +22,7 @@ import {
   loadUserNationality,
   saveUserNationality,
 } from '../services/documentStorage';
+import { generateId } from '../utils/id';
 
 interface DocumentState {
   // Current trip documents data
@@ -70,15 +71,19 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       set({ userNationality: nationality });
     } catch (error) {
       console.error('Error loading nationality:', error);
+      set({ error: 'Could not load nationality. Entry requirements may be inaccurate.' });
     }
   },
 
   setNationality: async (nationality: string) => {
+    const previous = (await loadUserNationality()) ?? '';
     try {
       await saveUserNationality(nationality);
       set({ userNationality: nationality });
     } catch (error) {
       console.error('Error saving nationality:', error);
+      set({ userNationality: previous, error: 'Failed to save nationality' });
+      throw error;
     }
   },
 
@@ -89,12 +94,11 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       data.tripPurpose = purpose;
       data.passportType = passportType;
       await saveTripDocuments(data);
-      set({ currentTripDocs: data });
-      // Also save nationality as user preference
       await saveUserNationality(nationality);
-      set({ userNationality: nationality });
+      set({ currentTripDocs: data, userNationality: nationality });
     } catch (error) {
       set({ error: error instanceof Error ? error.message : 'Failed to update settings' });
+      throw error;
     }
   },
 
@@ -102,7 +106,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     try {
       const newDoc: TripDocument = {
         ...doc,
-        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+        id: generateId(),
         tripId,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -111,6 +115,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       set({ currentTripDocs: data });
     } catch (error) {
       set({ error: error instanceof Error ? error.message : 'Failed to add document' });
+      throw error;
     }
   },
 
@@ -120,6 +125,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       set({ currentTripDocs: data });
     } catch (error) {
       set({ error: error instanceof Error ? error.message : 'Failed to remove document' });
+      throw error;
     }
   },
 
@@ -127,12 +133,13 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     try {
       const newEvent: TimelineEvent = {
         ...event,
-        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+        id: generateId(),
       };
       const data = await addEventStorage(tripId, newEvent);
       set({ currentTripDocs: data });
     } catch (error) {
       set({ error: error instanceof Error ? error.message : 'Failed to add timeline event' });
+      throw error;
     }
   },
 
@@ -142,6 +149,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       set({ currentTripDocs: data });
     } catch (error) {
       set({ error: error instanceof Error ? error.message : 'Failed to remove event' });
+      throw error;
     }
   },
 }));

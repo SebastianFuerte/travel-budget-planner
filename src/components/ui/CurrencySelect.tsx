@@ -44,7 +44,7 @@ export const CurrencySelect: React.FC<CurrencySelectProps> = ({
       if (Platform.OS === 'web' && typeof navigator !== 'undefined') {
         locale = navigator.language;
       }
-    } catch {}
+    } catch { /* navigator.language not available on all platforms */ }
     return getSuggestedCurrency({ userLocale: locale, selectedCountry });
   }, [selectedCountry]);
 

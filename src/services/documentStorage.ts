@@ -31,6 +31,7 @@ export const loadTripDocuments = async (tripId: string): Promise<TripDocumentsDa
     return {
       tripId,
       nationality: '',
+      passportType: 'ordinary',
       tripPurpose: 'tourism',
       documents: [],
       timelineEvents: [],

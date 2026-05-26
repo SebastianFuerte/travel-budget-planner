@@ -13,44 +13,21 @@ import {
 import { router } from 'expo-router';
 import { ScreenContainer } from '../src/components/layout/ScreenContainer';
 import { setHasSeenOnboarding } from '../src/services/storage';
+import { useTranslation } from '../src/i18n';
 import colors from '../src/theme/colors';
-
-interface Slide {
-  id: string;
-  icon: string;
-  title: string;
-  description: string;
-}
-
-const SLIDES: Slide[] = [
-  {
-    id: '1',
-    icon: '\u2708\uFE0F',
-    title: 'Plan Your Travel Budget',
-    description:
-      'Get realistic daily budget estimates for 50+ cities worldwide. Choose your travel style and let the app calculate costs for accommodation, food, transport, and more.',
-  },
-  {
-    id: '2',
-    icon: '\uD83D\uDCCB',
-    title: 'Documents & Entry Requirements',
-    description:
-      'Track visa requirements, store travel documents, and access your boarding passes with QR codes. Everything you need for a smooth trip, organized in one place.',
-  },
-  {
-    id: '3',
-    icon: '\uD83D\uDCB0',
-    title: 'Compare & Confirm Prices',
-    description:
-      'Browse pricing providers like Booking and Airbnb, then confirm real prices to refine your budget. Share your budget breakdown with travel companions.',
-  },
-];
 
 const SLIDE_WIDTH = Math.min(Dimensions.get('window').width, 400);
 
 export default function OnboardingScreen() {
+  const { t } = useTranslation();
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
+
+  const SLIDES = [
+    { id: '1', icon: '✈️', title: t.onboarding.slide1Title, description: t.onboarding.slide1Desc },
+    { id: '2', icon: '📋', title: t.onboarding.slide2Title, description: t.onboarding.slide2Desc },
+    { id: '3', icon: '💰', title: t.onboarding.slide3Title, description: t.onboarding.slide3Desc },
+  ];
 
   const handleNext = () => {
     if (currentIndex < SLIDES.length - 1) {
@@ -61,16 +38,14 @@ export default function OnboardingScreen() {
     }
   };
 
-  const handleSkip = () => {
-    handleFinish();
-  };
+  const handleSkip = () => handleFinish();
 
   const handleFinish = async () => {
     await setHasSeenOnboarding();
     router.replace('/(tabs)');
   };
 
-  const renderSlide = ({ item }: { item: Slide }) => (
+  const renderSlide = ({ item }: { item: typeof SLIDES[0] }) => (
     <View style={[styles.slide, { width: SLIDE_WIDTH }]}>
       <Text style={styles.slideIcon}>{item.icon}</Text>
       <Text style={styles.slideTitle}>{item.title}</Text>
@@ -84,7 +59,7 @@ export default function OnboardingScreen() {
     <ScreenContainer>
       <View style={styles.container}>
         <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
-          <Text style={styles.skipText}>Skip</Text>
+          <Text style={styles.skipText}>{t.onboarding.skip}</Text>
         </TouchableOpacity>
 
         <View style={styles.slideContainer}>
@@ -92,12 +67,12 @@ export default function OnboardingScreen() {
             ref={flatListRef}
             data={SLIDES}
             renderItem={renderSlide}
-            keyExtractor={(item) => item.id}
+            keyExtractor={item => item.id}
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={false}
             scrollEnabled={Platform.OS !== 'web'}
-            onMomentumScrollEnd={(e) => {
+            onMomentumScrollEnd={e => {
               const index = Math.round(e.nativeEvent.contentOffset.x / SLIDE_WIDTH);
               setCurrentIndex(index);
             }}
@@ -109,16 +84,13 @@ export default function OnboardingScreen() {
         <View style={styles.footer}>
           <View style={styles.dots}>
             {SLIDES.map((_, i) => (
-              <View
-                key={i}
-                style={[styles.dot, i === currentIndex && styles.dotActive]}
-              />
+              <View key={i} style={[styles.dot, i === currentIndex && styles.dotActive]} />
             ))}
           </View>
 
           <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
             <Text style={styles.nextButtonText}>
-              {isLastSlide ? 'Get Started' : 'Next'}
+              {isLastSlide ? t.onboarding.getStarted : t.onboarding.next}
             </Text>
           </TouchableOpacity>
         </View>
@@ -128,79 +100,22 @@ export default function OnboardingScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  skipButton: {
-    alignSelf: 'flex-end',
-    padding: 16,
-    paddingTop: 20,
-  },
-  skipText: {
-    fontSize: 15,
-    color: colors.textSecondary,
-    fontWeight: '500',
-  },
-  slideContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  slide: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 32,
-  },
-  slideIcon: {
-    fontSize: 64,
-    marginBottom: 24,
-  },
-  slideTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.text,
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  slideDescription: {
-    fontSize: 15,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  footer: {
-    paddingHorizontal: 32,
-    paddingBottom: 40,
-    alignItems: 'center',
-    gap: 24,
-  },
-  dots: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.border,
-  },
-  dotActive: {
-    backgroundColor: colors.primary,
-    width: 24,
-  },
+  container: { flex: 1, backgroundColor: colors.background },
+  skipButton: { alignSelf: 'flex-end', padding: 16, paddingTop: 20 },
+  skipText: { fontSize: 15, color: colors.textSecondary, fontWeight: '500' },
+  slideContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  slide: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 32 },
+  slideIcon: { fontSize: 72, marginBottom: 28 },
+  slideTitle: { fontSize: 24, fontWeight: '700', color: colors.text, textAlign: 'center', marginBottom: 16 },
+  slideDescription: { fontSize: 15, color: colors.textSecondary, textAlign: 'center', lineHeight: 22 },
+  footer: { paddingHorizontal: 32, paddingBottom: 40, alignItems: 'center', gap: 24 },
+  dots: { flexDirection: 'row', gap: 8 },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.border },
+  dotActive: { backgroundColor: colors.primary, width: 24 },
   nextButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 14,
-    paddingVertical: 16,
-    paddingHorizontal: 48,
-    width: '100%',
-    maxWidth: 320,
-    alignItems: 'center',
+    backgroundColor: colors.primary, borderRadius: 14,
+    paddingVertical: 16, paddingHorizontal: 48,
+    width: '100%', maxWidth: 320, alignItems: 'center',
   },
-  nextButtonText: {
-    color: '#FFFFFF',
-    fontSize: 17,
-    fontWeight: '700',
-  },
+  nextButtonText: { color: '#FFFFFF', fontSize: 17, fontWeight: '700' },
 });

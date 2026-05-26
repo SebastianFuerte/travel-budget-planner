@@ -16,19 +16,24 @@ import { Trip, Currency, TravelStyle, TravelerProfile } from '../../src/types';
 import { TEMPLATES } from '../../src/services/templates';
 import { getBudgetForDestination, getCostLevel, getCostLevelDollars, getCostLevelLabel } from '../../src/services/cityBudgets';
 import { getProfileOptions, applyProfileToBudget } from '../../src/services/travelerProfiles';
-import { getCountries, getCitiesForCountry } from '../../src/services/countries';
+import { getCountriesLocalized, getCitiesForCountryLocalized } from '../../src/services/countries';
 import { validateTripName, validateNumberOfPeople } from '../../src/utils/validation';
 import { infoAlert } from '../../src/utils/alert';
 import colors from '../../src/theme/colors';
-import { CURRENCY_NAMES, TRAVEL_STYLES } from '../../src/utils/constants';
+import { TRAVEL_STYLES } from '../../src/utils/constants';
+import { useTranslation } from '../../src/i18n';
+import { getAirportOptions, getAirportLabel } from '../../src/services/airports';
+import { generateId } from '../../src/utils/id';
 
 export default function CreateTripScreen() {
   const addTrip = useTripStore(state => state.addTrip);
+  const { t, language } = useTranslation();
 
   const [tripName, setTripName] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [city, setCity] = useState('');
   const [country, setCountry] = useState('');
+  const [originIATA, setOriginIATA] = useState('');
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [numberOfPeople, setNumberOfPeople] = useState('2');
@@ -38,12 +43,13 @@ export default function CreateTripScreen() {
   const [loading, setLoading] = useState(false);
 
   const profileOptions = useMemo(() => getProfileOptions(), []);
+  const airportOptions = useMemo(() => getAirportOptions(), []);
 
-  const countries = useMemo(() => getCountries(), []);
+  const countries = useMemo(() => getCountriesLocalized(language), [language]);
   const cities = useMemo(() => {
     if (!country) return [];
-    return getCitiesForCountry(country);
-  }, [country]);
+    return getCitiesForCountryLocalized(country, language);
+  }, [country, language]);
 
   const costLevel = useMemo(() => {
     if (!city || !country) return null;
@@ -76,29 +82,29 @@ export default function CreateTripScreen() {
     // Validation
     const nameError = validateTripName(tripName);
     if (nameError) {
-      infoAlert('Invalid Trip Name', nameError);
+      infoAlert(t.create.invalidTripNameTitle, nameError);
       return;
     }
 
     if (!city || !country) {
-      infoAlert('Missing Information', 'Please select a country and city');
+      infoAlert(t.create.missingDestinationTitle, t.create.missingDestinationMsg);
       return;
     }
 
     if (!startDate || !endDate) {
-      infoAlert('Missing Dates', 'Please select travel dates using the calendar');
+      infoAlert(t.create.missingDatesTitle, t.create.missingDatesMsg);
       return;
     }
 
     if (startDate.getTime() > endDate.getTime()) {
-      infoAlert('Invalid Dates', 'Start date must be before end date');
+      infoAlert(t.create.invalidDatesTitle, t.create.invalidDatesMsg);
       return;
     }
 
-    const peopleCount = parseInt(numberOfPeople);
+    const peopleCount = parseInt(numberOfPeople, 10);
     const peopleError = validateNumberOfPeople(peopleCount);
     if (peopleError) {
-      infoAlert('Invalid Number', peopleError);
+      infoAlert(t.create.invalidNumberTitle, peopleError);
       return;
     }
 
@@ -120,10 +126,12 @@ export default function CreateTripScreen() {
       }
 
       const newTrip: Trip = {
-        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+        id: generateId(),
         destination: tripName,
         city,
         country,
+        originIATA: originIATA || undefined,
+        originCity: originIATA ? getAirportLabel(originIATA) : undefined,
         startDate,
         endDate,
         numberOfPeople: peopleCount,
@@ -136,63 +144,73 @@ export default function CreateTripScreen() {
       };
 
       await addTrip(newTrip);
-
-      // Navigate to the new trip
       router.replace(`/trip/${newTrip.id}`);
     } catch (error) {
-      infoAlert('Error', 'Failed to create trip');
+      infoAlert(t.common.error, t.create.createErrorMsg);
+    } finally {
       setLoading(false);
     }
   };
 
   return (
     <ScreenContainer>
-      <Text style={styles.title}>Create New Trip</Text>
+      <Text style={styles.title}>{t.create.title}</Text>
 
       <Card>
         <Select
-          label="Start from Template (Optional)"
+          label={t.create.templateLabel}
           value={selectedTemplate}
           options={[
-            { label: 'Custom Trip', value: '' },
-            ...TEMPLATES.map(t => ({ label: t.name, value: t.id })),
+            { label: t.create.customTrip, value: '' },
+            ...TEMPLATES.map(tmpl => ({ label: tmpl.name, value: tmpl.id })),
           ]}
           onChange={handleTemplateChange}
         />
       </Card>
 
       <Card>
-        <Text style={styles.sectionTitle}>Trip Details</Text>
+        <Text style={styles.sectionTitle}>{t.create.tripDetails}</Text>
 
         <Input
-          label="Trip Name"
+          label={t.create.tripName}
           value={tripName}
           onChangeText={setTripName}
-          placeholder="e.g., Summer Japan Adventure"
+          placeholder={t.create.tripNamePlaceholder}
         />
 
         <SearchableSelect
-          label="Country"
+          label={t.create.originCity}
+          value={originIATA}
+          options={airportOptions}
+          onChange={setOriginIATA}
+          placeholder={t.create.originCityPlaceholder}
+          searchPlaceholder={t.create.searchAirportCode}
+        />
+
+        <SearchableSelect
+          label={t.create.destination}
           value={country}
           options={countries}
           onChange={handleCountryChange}
-          placeholder="Search and select country..."
-          searchPlaceholder="Type to search countries..."
+          placeholder={t.create.searchDestinationPlaceholder}
+          searchPlaceholder={t.create.typeDestinationPlaceholder}
+          noResultsText={t.create.noResultsFound}
         />
 
         <SearchableSelect
-          label="City"
+          label={t.create.city}
           value={city}
           options={cities}
           onChange={setCity}
-          placeholder={country ? 'Search and select city...' : 'Select a country first'}
-          searchPlaceholder="Type to search cities..."
+          placeholder={country ? t.create.searchCityPlaceholder : t.create.selectDestinationFirst}
+          searchPlaceholder={t.create.typeCityPlaceholder}
           disabled={!country}
           allowCustom
+          noResultsText={t.create.noResultsFound}
         />
 
         <DateRangePicker
-          label="Travel Dates"
+          label={t.create.travelDates}
           startDate={startDate}
           endDate={endDate}
           onRangeChange={handleDateRangeChange}
@@ -200,7 +218,7 @@ export default function CreateTripScreen() {
         />
 
         <Input
-          label="Number of People"
+          label={t.create.travelers}
           value={numberOfPeople}
           onChangeText={setNumberOfPeople}
           keyboardType="number-pad"
@@ -208,17 +226,17 @@ export default function CreateTripScreen() {
         />
 
         <CurrencySelect
-          label="Currency"
+          label={t.create.currency}
           value={currency}
           selectedCountry={country}
           onChange={(value) => setCurrency(value as Currency)}
         />
 
         <Select
-          label="Travel Style"
+          label={t.create.travelStyle}
           value={travelStyle}
           options={TRAVEL_STYLES.map(style => ({
-            label: style,
+            label: style === 'Budget' ? t.create.budget : style === 'Mid' ? t.create.mid : t.create.comfy,
             value: style,
           }))}
           onChange={(value) => setTravelStyle(value as TravelStyle)}
@@ -229,14 +247,14 @@ export default function CreateTripScreen() {
         <View style={styles.costIndicator}>
           <Text style={styles.costDollars}>{getCostLevelDollars(costLevel)}</Text>
           <Text style={styles.costLabel}>
-            {getCostLevelLabel(costLevel)} destination
+            {getCostLevelLabel(costLevel)} {t.create.costDestination}
           </Text>
         </View>
       )}
 
       <Card>
-        <Text style={styles.sectionTitle}>Traveler Profile (Optional)</Text>
-        <Text style={styles.profileHint}>Adjusts budget estimates based on your travel style</Text>
+        <Text style={styles.sectionTitle}>{t.create.travelerProfile}</Text>
+        <Text style={styles.profileHint}>{t.create.travelerProfileHint}</Text>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -248,7 +266,7 @@ export default function CreateTripScreen() {
             onPress={() => setTravelerProfile('')}
           >
             <Text style={styles.profileChipIcon}>-</Text>
-            <Text style={[styles.profileChipLabel, !travelerProfile && styles.profileChipLabelSelected]}>None</Text>
+            <Text style={[styles.profileChipLabel, !travelerProfile && styles.profileChipLabelSelected]}>{t.create.noProfile}</Text>
           </TouchableOpacity>
           {profileOptions.map((profile) => (
             <TouchableOpacity
@@ -258,20 +276,20 @@ export default function CreateTripScreen() {
             >
               <Text style={styles.profileChipIcon}>{profile.icon}</Text>
               <Text style={[styles.profileChipLabel, travelerProfile === profile.id && styles.profileChipLabelSelected]}>
-                {profile.label}
+                {t.profiles[profile.id].label}
               </Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
         {travelerProfile ? (
           <Text style={styles.profileDescription}>
-            {profileOptions.find(p => p.id === travelerProfile)?.description}
+            {t.profiles[travelerProfile as keyof typeof t.profiles].description}
           </Text>
         ) : null}
       </Card>
 
       <Button
-        title="Create Trip"
+        title={loading ? t.create.creating : t.create.createTrip}
         onPress={handleCreate}
         loading={loading}
         fullWidth

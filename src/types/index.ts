@@ -30,7 +30,8 @@ export interface Trip {
   numberOfPeople: number;
   currency: Currency;                   // Trip/destination currency
   userCurrency?: Currency;              // User's home currency (for FX conversion)
-  originCity?: string;                  // Where user flies from
+  originCity?: string;                  // Display name of departure city
+  originIATA?: string;                  // IATA code (BOG, JFK, MAD...) for flight search links
   travelStyle: TravelStyle;
   travelerProfile?: TravelerProfile;
   budget: BudgetCategories;
@@ -46,6 +47,8 @@ export interface Trip {
     };
   };
   notes?: string;
+  tags?: string[];           // User labels: 'honeymoon', 'family', 'business', etc.
+  archived?: boolean;        // Soft-delete / archive completed trips
   createdAt: Date;
   updatedAt: Date;
 }

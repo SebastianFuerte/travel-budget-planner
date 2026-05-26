@@ -15,18 +15,27 @@ import {
 } from 'react-native';
 import colors from '../../theme/colors';
 
+interface SelectOption {
+  label: string;
+  value: string;
+}
+
 interface SearchableSelectProps {
   label?: string;
   value: string;
-  options: string[];
+  options: string[] | SelectOption[];
   onChange: (value: string) => void;
   placeholder?: string;
   searchPlaceholder?: string;
+  noResultsText?: string;
   error?: string;
   containerStyle?: ViewStyle;
   disabled?: boolean;
   allowCustom?: boolean;
 }
+
+const normalizeOptions = (options: string[] | SelectOption[]): SelectOption[] =>
+  options.map(opt => (typeof opt === 'string' ? { label: opt, value: opt } : opt));
 
 export const SearchableSelect: React.FC<SearchableSelectProps> = ({
   label,
@@ -35,6 +44,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
   onChange,
   placeholder = 'Select an option',
   searchPlaceholder = 'Search...',
+  noResultsText = 'No results found',
   error,
   containerStyle,
   disabled = false,
@@ -43,11 +53,18 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
+  const normalizedOptions = useMemo(() => normalizeOptions(options), [options]);
+
   const filteredOptions = useMemo(() => {
-    if (!searchQuery.trim()) return options;
+    if (!searchQuery.trim()) return normalizedOptions;
     const lower = searchQuery.toLowerCase();
-    return options.filter(opt => opt.toLowerCase().includes(lower));
-  }, [options, searchQuery]);
+    return normalizedOptions.filter(opt => opt.label.toLowerCase().includes(lower));
+  }, [normalizedOptions, searchQuery]);
+
+  const displayValue = useMemo(() => {
+    const match = normalizedOptions.find(opt => opt.value === value);
+    return match ? match.label : value;
+  }, [normalizedOptions, value]);
 
   const handleOpen = () => {
     if (disabled) return;
@@ -55,8 +72,8 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
     setIsOpen(true);
   };
 
-  const handleSelect = (opt: string) => {
-    onChange(opt);
+  const handleSelect = (opt: SelectOption) => {
+    onChange(opt.value);
     setIsOpen(false);
     setSearchQuery('');
   };
@@ -71,7 +88,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
         activeOpacity={disabled ? 1 : 0.7}
       >
         <Text style={[styles.selectText, !value && styles.placeholder]}>
-          {value || placeholder}
+          {value ? displayValue : placeholder}
         </Text>
         <Text style={styles.arrow}>▼</Text>
       </TouchableOpacity>
@@ -119,11 +136,11 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
             <ScrollView style={styles.optionsList} keyboardShouldPersistTaps="handled">
               {filteredOptions.length === 0 ? (
                 <View style={styles.emptyState}>
-                  <Text style={styles.emptyText}>No results found</Text>
+                  <Text style={styles.emptyText}>{noResultsText}</Text>
                   {allowCustom && searchQuery.trim().length > 0 && (
                     <TouchableOpacity
                       style={styles.customOption}
-                      onPress={() => handleSelect(searchQuery.trim())}
+                      onPress={() => handleSelect({ label: searchQuery.trim(), value: searchQuery.trim() })}
                     >
                       <Text style={styles.customOptionText}>
                         Use "{searchQuery.trim()}" as custom entry
@@ -134,14 +151,14 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
               ) : (
                 filteredOptions.map((opt) => (
                   <TouchableOpacity
-                    key={opt}
-                    style={[styles.option, opt === value && styles.optionSelected]}
+                    key={opt.value}
+                    style={[styles.option, opt.value === value && styles.optionSelected]}
                     onPress={() => handleSelect(opt)}
                   >
-                    <Text style={[styles.optionText, opt === value && styles.optionTextSelected]}>
-                      {opt}
+                    <Text style={[styles.optionText, opt.value === value && styles.optionTextSelected]}>
+                      {opt.label}
                     </Text>
-                    {opt === value && <Text style={styles.checkmark}>✓</Text>}
+                    {opt.value === value && <Text style={styles.checkmark}>✓</Text>}
                   </TouchableOpacity>
                 ))
               )}

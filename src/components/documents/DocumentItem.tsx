@@ -33,6 +33,21 @@ export const DocumentItem: React.FC<DocumentItemProps> = ({ document, onDelete, 
       })
     : null;
 
+  // Expiration logic
+  const expiryStatus: 'expired' | 'soon' | 'ok' | null = (() => {
+    if (!document.expirationDate) return null;
+    const expiry = new Date(document.expirationDate);
+    const now = new Date();
+    const daysLeft = Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    if (daysLeft < 0) return 'expired';
+    if (daysLeft <= 90) return 'soon';
+    return 'ok';
+  })();
+
+  const formattedExpiry = document.expirationDate
+    ? new Date(document.expirationDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    : null;
+
   return (
     <TouchableOpacity style={styles.container} onPress={() => onView(document)} activeOpacity={0.7}>
       <View style={styles.iconContainer}>
@@ -46,6 +61,13 @@ export const DocumentItem: React.FC<DocumentItemProps> = ({ document, onDelete, 
         )}
         {document.notes && (
           <Text style={styles.notes} numberOfLines={1}>{document.notes}</Text>
+        )}
+        {formattedExpiry && (
+          <View style={[styles.expiryRow, expiryStatus === 'expired' && styles.expiryRowExpired, expiryStatus === 'soon' && styles.expiryRowSoon]}>
+            <Text style={[styles.expiryText, expiryStatus === 'expired' && styles.expiryTextExpired, expiryStatus === 'soon' && styles.expiryTextSoon]}>
+              {expiryStatus === 'expired' ? '⚠️ Expired' : expiryStatus === 'soon' ? '⏰ Expires' : '✓ Expires'} {formattedExpiry}
+            </Text>
+          </View>
         )}
       </View>
       <View style={styles.actions}>
@@ -116,6 +138,19 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontStyle: 'italic',
   },
+  expiryRow: {
+    marginTop: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    backgroundColor: '#D1FAE5',
+    alignSelf: 'flex-start',
+  },
+  expiryRowExpired: { backgroundColor: '#FEE2E2' },
+  expiryRowSoon: { backgroundColor: '#FEF3C7' },
+  expiryText: { fontSize: 10, fontWeight: '600', color: '#065F46' },
+  expiryTextExpired: { color: '#991B1B' },
+  expiryTextSoon: { color: '#92400E' },
   actions: {
     alignItems: 'flex-end',
     marginLeft: 8,

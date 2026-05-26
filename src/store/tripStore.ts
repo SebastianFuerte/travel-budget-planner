@@ -4,6 +4,7 @@ import { create } from 'zustand';
 import { Trip } from '../types';
 import { loadTrips, saveTrips } from '../services/storage';
 import { logTripCreated, logTripEdited, logTripDeleted, logTripDuplicated } from '../services/analytics';
+import { generateId } from '../utils/id';
 
 interface TripState {
   trips: Trip[];
@@ -17,6 +18,8 @@ interface TripState {
   deleteTrip: (id: string) => Promise<void>;
   duplicateTrip: (id: string) => Promise<void>;
   getTripById: (id: string) => Trip | undefined;
+  archiveTrip: (id: string) => Promise<void>;
+  unarchiveTrip: (id: string) => Promise<void>;
 }
 
 /**
@@ -99,15 +102,16 @@ export const useTripStore = create<TripState>((set, get) => ({
     try {
       const trip = get().getTripById(id);
       if (!trip) throw new Error('Trip not found');
-      
+
       const newTrip: Trip = {
         ...trip,
-        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+        id: generateId(),
         destination: `${trip.destination} (Copy)`,
+        confirmedPrices: trip.confirmedPrices ? trip.confirmedPrices.map(cp => ({ ...cp })) : [],
         createdAt: new Date(),
         updatedAt: new Date(),
       };
-      
+
       await get().addTrip(newTrip);
       logTripDuplicated(id);
     } catch (error) {
@@ -118,5 +122,13 @@ export const useTripStore = create<TripState>((set, get) => ({
 
   getTripById: (id: string) => {
     return get().trips.find(trip => trip.id === id);
+  },
+
+  archiveTrip: async (id: string) => {
+    await get().updateTrip(id, { archived: true });
+  },
+
+  unarchiveTrip: async (id: string) => {
+    await get().updateTrip(id, { archived: false });
   },
 }));

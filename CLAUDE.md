@@ -4,11 +4,11 @@
 App movil (React Native + Expo) para planificar presupuestos de viaje. Funciona en Web (PC preview), Android e iOS.
 
 ## Stack
-- **Framework**: React Native + Expo SDK 51 + TypeScript
-- **Routing**: Expo Router (file-based) v3.5
+- **Framework**: React Native + Expo SDK 54 + TypeScript
+- **Routing**: Expo Router (file-based) v6
 - **State**: Zustand v4.5
 - **Storage**: AsyncStorage (100% local, sin backend)
-- **React**: 18.2.0 (IMPORTANTE: no subir a React 19, rompe dependencias)
+- **React**: 19.1.0 (SDK 54 + react-native 0.81.5 requieren React 19 — NO bajar a 18)
 
 ## Como ejecutar
 ```bash
@@ -100,7 +100,7 @@ src/
 - Disclaimers de visa: "Informacion orientativa - verificar con fuentes oficiales"
 
 ## Dependencias criticas
-- `react-test-renderer` DEBE ser `18.2.0` (match con React 18)
+- `react-test-renderer` DEBE ser `19.1.0` (match con React 19)
 - `react-native-reanimated` requerido por babel.config.js
 - `babel-plugin-module-resolver` requerido por alias `@` en babel
 - Assets PNG deben existir en `assets/` (favicon, icon, splash, adaptive-icon)

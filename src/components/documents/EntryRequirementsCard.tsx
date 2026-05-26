@@ -23,15 +23,19 @@ const HEALTH_BADGE: Record<HealthRequirement['status'], { bg: string; text: stri
   not_required: { bg: '#DCFCE7', text: '#166534' },
 };
 
-const SEMAPHORE: Record<EntryStatusColor, { bg: string; text: string; border: string }> = {
-  green: { bg: '#DCFCE7', text: '#166534', border: '#86EFAC' },
+const SEMAPHORE: Record<EntryStatusColor | 'grey', { bg: string; text: string; border: string }> = {
+  green:  { bg: '#DCFCE7', text: '#166534', border: '#86EFAC' },
   yellow: { bg: '#FEF9C3', text: '#854D0E', border: '#FDE047' },
-  red: { bg: '#FEE2E2', text: '#991B1B', border: '#FCA5A5' },
+  red:    { bg: '#FEE2E2', text: '#991B1B', border: '#FCA5A5' },
+  grey:   { bg: '#F3F4F6', text: '#6B7280', border: '#D1D5DB' },
 };
+
+const isFallback = (req: EntryRequirement) =>
+  req.notes?.includes('conservative placeholder') ?? false;
 
 export const EntryRequirementsCard: React.FC<EntryRequirementsCardProps> = ({ requirement }) => {
   const statusColor = ENTRY_STATUS_COLORS[requirement.status];
-  const sem = SEMAPHORE[statusColor];
+  const sem = isFallback(requirement) ? SEMAPHORE.grey : SEMAPHORE[statusColor];
 
   const openUrl = (url: string) => {
     Linking.openURL(url).catch(() => {});
@@ -46,6 +50,15 @@ export const EntryRequirementsCard: React.FC<EntryRequirementsCardProps> = ({ re
           {ENTRY_STATUS_LABELS[requirement.status]}
         </Text>
       </View>
+
+      {/* No-data warning */}
+      {isFallback(requirement) && (
+        <View style={styles.noDataBanner}>
+          <Text style={styles.noDataText}>
+            ℹ️ No pre-loaded data for this combination. Check official sources below.
+          </Text>
+        </View>
+      )}
 
       {/* Route + Passport Info */}
       <View style={styles.routeInfo}>
@@ -256,4 +269,6 @@ const styles = StyleSheet.create({
   updatedText: { fontSize: 11, color: colors.textTertiary },
   disclaimer: { backgroundColor: colors.backgroundTertiary, paddingVertical: 8, paddingHorizontal: 16 },
   disclaimerText: { fontSize: 11, color: colors.textTertiary, textAlign: 'center', fontStyle: 'italic' },
+  noDataBanner: { backgroundColor: '#EFF6FF', paddingVertical: 10, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: '#BFDBFE' },
+  noDataText: { fontSize: 12, color: '#1D4ED8', lineHeight: 18 },
 });

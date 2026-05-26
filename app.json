@@ -17,10 +17,22 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.travelbudget.planner",
-      "buildNumber": "1.0.0",
+      "buildNumber": "1",
+      "privacyPolicyUrl": "https://gist.github.com/SebastianFuerte/0046255174fa1ca9476a652de57dfa4a",
       "infoPlist": {
         "NSCameraUsageDescription": "Take photos of your travel documents (passport, visa, boarding pass)",
-        "NSPhotoLibraryUsageDescription": "Select photos of your travel documents from your library"
+        "NSPhotoLibraryUsageDescription": "Select photos of your travel documents from your library",
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "privacyManifests": {
+        "NSPrivacyAccessedAPITypes": [
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "CA92.1"
+            ]
+          }
+        ]
       }
     },
     "android": {
@@ -50,7 +62,11 @@
     "extra": {
       "router": {
         "origin": false
+      },
+      "eas": {
+        "projectId": "ef0ea1c6-2a4e-4760-b35b-3a31b29677b7"
       }
-    }
+    },
+    "owner": "sebas12167"
   }
 }

@@ -7,6 +7,8 @@ export type EntryStatus =
   | 'VISA_REQUIRED'
   | 'VISA_NOT_REQUIRED'
   | 'VISA_FREE_BUT_REQUIRED'       // Visa process exists but fee is free
+  | 'VISA_ON_ARRIVAL'              // Visa available on arrival at port of entry
+  | 'EVISA_OR_ETA'                 // Electronic visa or travel authorisation required
   | 'NOT_REQUIRED_BUT_RECOMMENDED' // Not legally required, but strongly recommended
   | 'DEPENDS';                     // Depends on conditions (explanation in summary)
 
@@ -54,6 +56,8 @@ export const ENTRY_STATUS_LABELS: Record<EntryStatus, string> = {
   VISA_REQUIRED: 'Visa Required',
   VISA_NOT_REQUIRED: 'Visa Not Required',
   VISA_FREE_BUT_REQUIRED: 'Visa Required (No Fee)',
+  VISA_ON_ARRIVAL: 'Visa on Arrival',
+  EVISA_OR_ETA: 'eVisa / ETA Required',
   NOT_REQUIRED_BUT_RECOMMENDED: 'Not Required but Recommended',
   DEPENDS: 'Depends on Conditions',
 };
@@ -61,6 +65,8 @@ export const ENTRY_STATUS_LABELS: Record<EntryStatus, string> = {
 export const ENTRY_STATUS_COLORS: Record<EntryStatus, EntryStatusColor> = {
   VISA_NOT_REQUIRED: 'green',
   VISA_FREE_BUT_REQUIRED: 'yellow',
+  VISA_ON_ARRIVAL: 'yellow',
+  EVISA_OR_ETA: 'yellow',
   NOT_REQUIRED_BUT_RECOMMENDED: 'green',
   VISA_REQUIRED: 'red',
   DEPENDS: 'yellow',
@@ -74,18 +80,76 @@ export const PASSPORT_TYPE_LABELS: Record<PassportType, string> = {
 
 export const NATIONALITIES = [
   'Argentina',
+  'Australia',
+  'Austria',
+  'Bangladesh',
+  'Belgium',
+  'Bolivia',
   'Brazil',
   'Canada',
   'Chile',
+  'China',
   'Colombia',
+  'Costa Rica',
+  'Croatia',
+  'Cuba',
+  'Czech Republic',
+  'Denmark',
+  'Dominican Republic',
+  'Ecuador',
+  'Egypt',
+  'El Salvador',
+  'Ethiopia',
+  'Finland',
   'France',
   'Germany',
+  'Ghana',
+  'Greece',
+  'Guatemala',
+  'Haiti',
+  'Honduras',
+  'Hungary',
+  'India',
+  'Indonesia',
+  'Ireland',
+  'Israel',
   'Italy',
+  'Jamaica',
+  'Japan',
+  'Kenya',
+  'Malaysia',
   'Mexico',
+  'Morocco',
+  'Netherlands',
+  'New Zealand',
+  'Nigeria',
+  'Norway',
+  'Pakistan',
+  'Panama',
+  'Paraguay',
   'Peru',
+  'Philippines',
+  'Poland',
+  'Portugal',
+  'Romania',
+  'Russia',
+  'Saudi Arabia',
+  'Serbia',
+  'Singapore',
+  'South Africa',
+  'South Korea',
   'Spain',
+  'Sweden',
+  'Switzerland',
+  'Thailand',
+  'Turkey',
+  'UAE',
+  'Ukraine',
   'United Kingdom',
+  'Uruguay',
   'USA',
+  'Venezuela',
+  'Vietnam',
 ];
 
 // --- DOCUMENT VAULT ---
@@ -110,6 +174,7 @@ export interface TripDocument {
   fileType?: DocumentFileType;
   notes?: string;
   date?: string;
+  expirationDate?: string;   // ISO date — used for passport, visa, insurance expiry alerts
   qrCode?: string;
   createdAt: string;
   updatedAt: string;

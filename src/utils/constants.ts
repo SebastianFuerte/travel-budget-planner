@@ -54,6 +54,7 @@ export const CATEGORY_LABELS = {
 };
 
 export const FREE_TRIP_LIMIT = 1;
+export const FREE_DOC_LIMIT = 3;
 export const PRO_PRICE_MONTHLY = 4.99;
 export const PRO_PRICE_YEARLY = 39.99;
 

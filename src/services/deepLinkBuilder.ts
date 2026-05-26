@@ -1,6 +1,18 @@
 // src/services/deepLinkBuilder.ts
 // Builds deep links with correct dates, params, and occupancy for each provider
 // Each builder returns { url, params, provider, limitations }
+//
+// AFFILIATE IDs — replace with your real IDs after signing up:
+//   Booking.com:   https://www.booking.com/affiliate-program/
+//   Skyscanner:    https://partners.skyscanner.net/
+//   GetYourGuide:  https://partner.getyourguide.com/
+//   Viator:        https://www.tripadvisor.com/affiliates
+const AFFILIATE = {
+  booking:      '', // e.g. '1234567'
+  skyscanner:   '', // e.g. 'MY_PARTNER_ID'
+  getYourGuide: '', // e.g. 'ABCDE'
+  viator:       '', // e.g. 'MY_VIATOR_ID'
+};
 
 export interface DeepLinkResult {
   url: string;
@@ -53,7 +65,8 @@ const enc = (s: string) => encodeURIComponent(s);
 export const buildBookingLink = (p: AccommodationParams): DeepLinkResult => {
   const checkin = formatDate(p.checkin);
   const checkout = formatDate(p.checkout);
-  const url = `https://www.booking.com/searchresults.html?ss=${enc(p.city + ', ' + p.country)}&checkin=${checkin}&checkout=${checkout}&group_adults=${p.guests}&no_rooms=${p.rooms || 1}`;
+  const aid = AFFILIATE.booking ? `&aid=${AFFILIATE.booking}` : '';
+  const url = `https://www.booking.com/searchresults.html?ss=${enc(p.city + ', ' + p.country)}&checkin=${checkin}&checkout=${checkout}&group_adults=${p.guests}&no_rooms=${p.rooms || 1}${aid}`;
   return {
     url,
     params: { ss: p.city, checkin, checkout, guests: String(p.guests) },
@@ -101,12 +114,12 @@ export const buildGoogleFlightsLink = (p: FlightParams): DeepLinkResult => {
 };
 
 export const buildSkyscannerLink = (p: FlightParams): DeepLinkResult => {
-  // Skyscanner uses compact dates (YYYYMMDD) and location slugs
   const depart = formatDateCompact(p.departDate);
   const ret = formatDateCompact(p.returnDate);
   const origin = enc(p.originCity.toLowerCase().replace(/\s+/g, '-'));
   const dest = enc(p.destCity.toLowerCase().replace(/\s+/g, '-'));
-  const url = `https://www.skyscanner.com/transport/flights/${origin}/${dest}/${depart}/${ret}/?adults=${p.passengers}`;
+  const partner = AFFILIATE.skyscanner ? `&associateid=${AFFILIATE.skyscanner}` : '';
+  const url = `https://www.skyscanner.com/transport/flights/${origin}/${dest}/${depart}/${ret}/?adults=${p.passengers}${partner}`;
   return {
     url,
     params: { from: p.originCity, to: p.destCity, depart, return: ret, adults: String(p.passengers) },
@@ -130,7 +143,8 @@ export const buildKayakLink = (p: FlightParams): DeepLinkResult => {
 // --- Activity Builders ---
 
 export const buildGetYourGuideLink = (p: ActivityParams): DeepLinkResult => {
-  const url = `https://www.getyourguide.com/s/?q=${enc(p.city + ' ' + p.country)}${p.date ? '&date_from=' + formatDate(p.date) : ''}`;
+  const partner = AFFILIATE.getYourGuide ? `&partner_id=${AFFILIATE.getYourGuide}` : '';
+  const url = `https://www.getyourguide.com/s/?q=${enc(p.city + ' ' + p.country)}${p.date ? '&date_from=' + formatDate(p.date) : ''}${partner}`;
   return {
     url,
     params: { q: p.city + ' ' + p.country },
@@ -139,7 +153,8 @@ export const buildGetYourGuideLink = (p: ActivityParams): DeepLinkResult => {
 };
 
 export const buildViatorLink = (p: ActivityParams): DeepLinkResult => {
-  const url = `https://www.viator.com/searchResults/all?text=${enc(p.city + ' ' + p.country)}`;
+  const pid = AFFILIATE.viator ? `&pid=${AFFILIATE.viator}` : '';
+  const url = `https://www.viator.com/searchResults/all?text=${enc(p.city + ' ' + p.country)}${pid}`;
   return {
     url,
     params: { text: p.city + ' ' + p.country },

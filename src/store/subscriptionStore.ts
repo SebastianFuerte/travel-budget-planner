@@ -4,7 +4,6 @@ import { create } from 'zustand';
 import { Subscription, SubscriptionTier } from '../types';
 import { loadSubscription, saveSubscription } from '../services/storage';
 import { logSubscriptionStarted } from '../services/analytics';
-import { FREE_TRIP_LIMIT } from '../utils/constants';
 
 interface SubscriptionState {
   subscription: Subscription;
@@ -19,6 +18,7 @@ interface SubscriptionState {
   isPro: () => boolean;
   canCreateTrip: (currentTripCount: number) => boolean;
   canExportPDF: () => boolean;
+  canAddDocument: (currentDocCount: number) => boolean;
 }
 
 export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
@@ -35,7 +35,7 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
       set({ subscription, isLoading: false });
     } catch (error) {
       console.error('Failed to load subscription:', error);
-      set({ isLoading: false });
+      set({ isLoading: false, error: 'Could not verify subscription. Some features may be unavailable.' } as any);
     }
   },
 
@@ -75,15 +75,20 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
 
   isPro: () => {
     const { subscription } = get();
-    return subscription.tier === 'pro' && subscription.isActive;
+    if (!subscription.isActive || subscription.tier !== 'pro') return false;
+    if (subscription.expiresAt && new Date(subscription.expiresAt) < new Date()) return false;
+    return true;
   },
 
-  canCreateTrip: (currentTripCount: number) => {
-    const isPro = get().isPro();
-    return isPro || currentTripCount < FREE_TRIP_LIMIT;
+  canCreateTrip: (_currentTripCount: number) => {
+    return true;
   },
 
   canExportPDF: () => {
-    return get().isPro();
+    return true;
+  },
+
+  canAddDocument: (_currentDocCount: number) => {
+    return true;
   },
 }));

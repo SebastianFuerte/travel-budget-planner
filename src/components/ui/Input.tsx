@@ -13,12 +13,14 @@ import colors from '../../theme/colors';
 
 interface InputProps extends TextInputProps {
   label?: string;
+  hint?: string;
   error?: string;
   containerStyle?: ViewStyle;
 }
 
 export const Input: React.FC<InputProps> = ({
   label,
+  hint,
   error,
   containerStyle,
   style,
@@ -32,6 +34,7 @@ export const Input: React.FC<InputProps> = ({
         placeholderTextColor={colors.textTertiary}
         {...props}
       />
+      {hint && !error && <Text style={styles.hint}>{hint}</Text>}
       {error && <Text style={styles.error}>{error}</Text>}
     </View>
   );
@@ -59,6 +62,11 @@ const styles = StyleSheet.create({
   },
   inputError: {
     borderColor: colors.error,
+  },
+  hint: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 4,
   },
   error: {
     fontSize: 12,

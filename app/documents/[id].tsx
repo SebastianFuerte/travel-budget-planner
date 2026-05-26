@@ -13,12 +13,14 @@ import { SearchableSelect } from '../../src/components/ui/SearchableSelect';
 import { EntryRequirementsCard } from '../../src/components/documents/EntryRequirementsCard';
 import { DocumentVault } from '../../src/components/documents/DocumentVault';
 import { TripTimeline } from '../../src/components/documents/TripTimeline';
+import { AmIReadyWidget } from '../../src/components/documents/AmIReadyWidget';
 import { useTripStore } from '../../src/store';
 import { useDocumentStore } from '../../src/store/documentStore';
 import { getEntryRequirements } from '../../src/services/visaRequirements';
 import { getCountries } from '../../src/services/countries';
 import colors from '../../src/theme/colors';
 import { TripPurpose, PassportType, EntryRequirement, PASSPORT_TYPE_LABELS } from '../../src/types/documents';
+import { useTranslation } from '../../src/i18n';
 
 type TabType = 'requirements' | 'documents' | 'timeline';
 
@@ -35,6 +37,7 @@ export default function DocumentsScreen() {
   } = useDocumentStore();
 
   const trip = getTripById(id);
+  const { t } = useTranslation();
 
   const [activeTab, setActiveTab] = useState<TabType>('requirements');
   const [selectedNationality, setSelectedNationality] = useState('');
@@ -116,7 +119,7 @@ export default function DocumentsScreen() {
   }));
 
   const tabs: { key: TabType; label: string; icon: string }[] = [
-    { key: 'requirements', label: 'Entry Req.', icon: '🛂' },
+    { key: 'requirements', label: 'Am I Ready?', icon: '✅' },
     { key: 'documents', label: 'Documents', icon: '📁' },
     { key: 'timeline', label: 'Timeline', icon: '📅' },
   ];
@@ -159,6 +162,15 @@ export default function DocumentsScreen() {
       {/* Tab Content */}
       {activeTab === 'requirements' && (
         <View style={styles.tabContent}>
+          {/* Am I Ready? Widget */}
+          <AmIReadyWidget
+            documents={currentTripDocs?.documents || []}
+            requirement={requirement}
+            nationalitySelected={!!selectedNationality}
+            tripStartDate={trip.startDate}
+            onGoToDocuments={() => setActiveTab('documents')}
+          />
+
           {/* Nationality Selector */}
           <SearchableSelect
             label="Your Passport (Nationality)"
@@ -259,14 +271,12 @@ export default function DocumentsScreen() {
       {/* Migration Mode Button */}
       <View style={styles.migrationSection}>
         <Button
-          title="Open Migration Mode"
+          title={t.documents.openMigrationMode}
           onPress={() => router.push(`/migration/${id}`)}
           variant="secondary"
           fullWidth
         />
-        <Text style={styles.migrationHint}>
-          Quick view of all essential documents for airport & migration checkpoints.
-        </Text>
+        <Text style={styles.migrationHint}>{t.documents.migrationHint}</Text>
       </View>
     </ScreenContainer>
   );

@@ -11,6 +11,8 @@ import { formatCurrency } from '../../utils/currency';
 import { calculateTripSummary } from '../../services/budgetEngine';
 import { useTripStore } from '../../store';
 import { confirmAlert, infoAlert } from '../../utils/alert';
+import { useTranslation } from '../../i18n';
+import { getCountryDisplayName, getCityDisplayName } from '../../services/countries';
 
 interface TripCardProps {
   trip: Trip;
@@ -18,7 +20,15 @@ interface TripCardProps {
 
 export const TripCard: React.FC<TripCardProps> = ({ trip }) => {
   const { deleteTrip, duplicateTrip } = useTripStore();
+  const { t, language } = useTranslation();
   const summary = calculateTripSummary(trip);
+
+  const getTravelStyleLabel = (style: string) => {
+    if (style === 'Budget') return t.create.budget;
+    if (style === 'Mid') return t.create.mid;
+    if (style === 'Comfy') return t.create.comfy;
+    return style;
+  };
 
   const handlePress = () => {
     router.push(`/trip/${trip.id}`);
@@ -26,19 +36,19 @@ export const TripCard: React.FC<TripCardProps> = ({ trip }) => {
 
   const handleDelete = () => {
     confirmAlert(
-      'Delete Trip',
-      `Are you sure you want to delete "${trip.destination}"?`,
+      t.home.deleteTrip,
+      t.home.deleteConfirm(trip.destination),
       () => deleteTrip(trip.id),
-      'Delete',
+      t.common.delete,
     );
   };
 
   const handleDuplicate = async () => {
     try {
       await duplicateTrip(trip.id);
-      infoAlert('Success', 'Trip duplicated successfully');
+      infoAlert(t.common.success, t.home.duplicated);
     } catch (error) {
-      infoAlert('Error', 'Failed to duplicate trip');
+      infoAlert(t.common.error, t.home.duplicateError);
     }
   };
 
@@ -58,7 +68,7 @@ export const TripCard: React.FC<TripCardProps> = ({ trip }) => {
           <View style={styles.titleSection}>
             <Text style={styles.destination}>{trip.destination}</Text>
             <Text style={styles.location}>
-              {trip.city}, {trip.country}
+              {getCityDisplayName(trip.city, language)}, {getCountryDisplayName(trip.country, language)}
             </Text>
           </View>
           <View
@@ -73,7 +83,7 @@ export const TripCard: React.FC<TripCardProps> = ({ trip }) => {
                 { color: getTravelStyleColor(trip.travelStyle) },
               ]}
             >
-              {trip.travelStyle}
+              {getTravelStyleLabel(trip.travelStyle)}
             </Text>
           </View>
         </View>
@@ -82,18 +92,35 @@ export const TripCard: React.FC<TripCardProps> = ({ trip }) => {
           <Text style={styles.dateText}>
             {format(trip.startDate, 'MMM dd')} - {format(trip.endDate, 'MMM dd, yyyy')}
           </Text>
-          <Text style={styles.daysText}>• {summary.numberOfDays} days</Text>
+          <Text style={styles.daysText}>• {t.trip.days(summary.numberOfDays)}</Text>
         </View>
+
+        {/* Tags */}
+        {trip.tags && trip.tags.length > 0 && (
+          <View style={styles.tagsRow}>
+            {trip.tags.map(tag => (
+              <View key={tag} style={styles.tag}>
+                <Text style={styles.tagText}>{tag}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {trip.archived && (
+          <View style={styles.archivedBadge}>
+            <Text style={styles.archivedText}>{t.home.archivedLabel}</Text>
+          </View>
+        )}
 
         <View style={styles.budget}>
           <View style={styles.budgetItem}>
-            <Text style={styles.budgetLabel}>Total Budget</Text>
+            <Text style={styles.budgetLabel}>{t.home.totalBudget}</Text>
             <Text style={styles.budgetValue}>
               {formatCurrency(summary.totalAverage, trip.currency)}
             </Text>
           </View>
           <View style={styles.budgetItem}>
-            <Text style={styles.budgetLabel}>Per Day</Text>
+            <Text style={styles.budgetLabel}>{t.home.perDay}</Text>
             <Text style={styles.budgetValue}>
               {formatCurrency(summary.dailyAverage, trip.currency)}
             </Text>
@@ -102,11 +129,14 @@ export const TripCard: React.FC<TripCardProps> = ({ trip }) => {
       </TouchableOpacity>
 
       <View style={styles.actions}>
+        <TouchableOpacity style={styles.actionButton} onPress={() => router.push(`/trip/edit/${trip.id}`)}>
+          <Text style={styles.actionText}>{t.home.editAction}</Text>
+        </TouchableOpacity>
         <TouchableOpacity style={styles.actionButton} onPress={handleDuplicate}>
-          <Text style={styles.actionText}>📋 Duplicate</Text>
+          <Text style={styles.actionText}>{t.home.duplicateAction}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionButton} onPress={handleDelete}>
-          <Text style={[styles.actionText, styles.deleteText]}>🗑️ Delete</Text>
+          <Text style={[styles.actionText, styles.deleteText]}>{t.home.deleteAction}</Text>
         </TouchableOpacity>
       </View>
     </Card>
@@ -198,5 +228,37 @@ const styles = StyleSheet.create({
   },
   deleteText: {
     color: colors.error,
+  },
+  tagsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 10,
+  },
+  tag: {
+    backgroundColor: colors.primary + '15',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderWidth: 1,
+    borderColor: colors.primary + '30',
+  },
+  tagText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  archivedBadge: {
+    backgroundColor: colors.backgroundTertiary,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    alignSelf: 'flex-start',
+    marginBottom: 8,
+  },
+  archivedText: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    fontWeight: '500',
   },
 });

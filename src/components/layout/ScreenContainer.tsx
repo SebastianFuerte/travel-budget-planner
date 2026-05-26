@@ -6,10 +6,10 @@ import {
   ScrollView,
   StyleSheet,
   Platform,
-  SafeAreaView,
   ViewStyle,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import colors from '../../theme/colors';
 import { WEB_CONTAINER_MAX_WIDTH, WEB_CONTAINER_PADDING } from '../../utils/constants';
 
@@ -21,10 +21,10 @@ interface ScreenContainerProps {
 
 /**
  * ScreenContainer - CRITICAL COMPONENT FOR PC PREVIEW
- * 
+ *
  * En WEB: muestra un contenedor centrado tipo "teléfono" (max 480px)
- * En MOBILE: ocupa todo el ancho nativo
- * 
+ * En MOBILE: ocupa todo el ancho nativo con status bar visible
+ *
  * Esto permite revisar la app en PC como si fuera un celular
  */
 export const ScreenContainer: React.FC<ScreenContainerProps> = ({
@@ -48,20 +48,26 @@ export const ScreenContainer: React.FC<ScreenContainerProps> = ({
     // WEB: Simula un teléfono en el centro de la pantalla
     return (
       <View style={styles.webWrapper}>
-        <SafeAreaView style={styles.webContainer}>
-          <StatusBar style="auto" />
+        <View style={styles.webContainer}>
+          <StatusBar style="dark" />
           {content}
-        </SafeAreaView>
+        </View>
       </View>
     );
   }
 
-  // MOBILE: Pantalla completa nativa
+  // MOBILE: SafeAreaView con edges explícitos para todos los iPhones
+  // (notch, Dynamic Island, home indicator)
   return (
-    <SafeAreaView style={styles.mobileContainer}>
-      <StatusBar style="auto" />
-      {content}
-    </SafeAreaView>
+    <>
+      <StatusBar style="dark" backgroundColor={colors.background} translucent={false} />
+      <SafeAreaView
+        style={styles.mobileContainer}
+        edges={['top', 'left', 'right']}
+      >
+        {content}
+      </SafeAreaView>
+    </>
   );
 };
 
@@ -69,7 +75,7 @@ const styles = StyleSheet.create({
   // WEB STYLES - Simula un teléfono
   webWrapper: {
     flex: 1,
-    backgroundColor: colors.backgroundTertiary, // Fondo gris alrededor
+    backgroundColor: colors.backgroundTertiary,
     alignItems: 'center',
     justifyContent: 'flex-start',
     paddingVertical: WEB_CONTAINER_PADDING,
@@ -86,13 +92,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 12,
   },
-  
+
   // MOBILE STYLES - Pantalla completa
   mobileContainer: {
     flex: 1,
     backgroundColor: colors.background,
   },
-  
+
   container: {
     flex: 1,
     padding: 16,

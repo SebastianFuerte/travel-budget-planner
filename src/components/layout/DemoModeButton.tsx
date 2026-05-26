@@ -11,9 +11,11 @@ import { logDemoModeOpened } from '../../services/analytics';
 import { infoAlert } from '../../utils/alert';
 import { saveTripDocuments } from '../../services/documentStorage';
 import { TripDocumentsData } from '../../types/documents';
+import { useTranslation } from '../../i18n';
 
 export const DemoModeButton: React.FC = () => {
   const addTrip = useTripStore(state => state.addTrip);
+  const { t } = useTranslation();
 
   const openDemoTrip = async () => {
     try {
@@ -69,6 +71,7 @@ export const DemoModeButton: React.FC = () => {
             notes: 'Avianca BOG-NRT round trip, 2 passengers',
           },
         },
+        tags: ['🎭 Culture', '🏙️ City Break', '🍷 Gastronomy'],
         notes: 'Demo trip - Colombia passport holder traveling to Japan.\nEntry requirements: Visa required (no fee).\nExplore budget breakdown with provider links!',
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -100,6 +103,7 @@ export const DemoModeButton: React.FC = () => {
             category: 'passport',
             title: 'Passport - Main Traveler',
             notes: 'Expires Dec 2028. Valid for Japan entry (6+ months).',
+            expirationDate: '2028-12-15',
             createdAt: now,
             updatedAt: now,
           },
@@ -109,6 +113,7 @@ export const DemoModeButton: React.FC = () => {
             category: 'visa',
             title: 'Japan Tourist Visa (Short-term Stay)',
             notes: 'Approved at Japanese Embassy in Bogota. No fee. Valid for 90 days.',
+            expirationDate: new Date(endDate.getTime() + 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
             createdAt: now,
             updatedAt: now,
           },
@@ -168,6 +173,7 @@ export const DemoModeButton: React.FC = () => {
             category: 'insurance',
             title: 'World Nomads Travel Insurance',
             notes: 'Policy #INS-2024-78901. Covers medical + trip cancellation. $7/day/person.',
+            expirationDate: endDate.toISOString().split('T')[0],
             createdAt: now,
             updatedAt: now,
           },
@@ -229,7 +235,7 @@ export const DemoModeButton: React.FC = () => {
   return (
     <TouchableOpacity style={styles.button} onPress={openDemoTrip}>
       <Text style={styles.icon}>🎭</Text>
-      <Text style={styles.text}>Open Demo Trip</Text>
+      <Text style={styles.text}>{t.home.openDemoTrip}</Text>
     </TouchableOpacity>
   );
 };

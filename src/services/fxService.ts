@@ -58,9 +58,12 @@ const fetchRatesFromApi = async (base: Currency): Promise<CachedRates | null> =>
       fetchedAt: Date.now(),
     };
     // Save to cache
-    await AsyncStorage.setItem(FX_CACHE_KEY + base, JSON.stringify(cached)).catch(() => {});
+    await AsyncStorage.setItem(FX_CACHE_KEY + base, JSON.stringify(cached)).catch((e) =>
+      console.warn('FX cache write failed:', e)
+    );
     return cached;
-  } catch {
+  } catch (error) {
+    console.warn('fetchRatesFromApi failed:', error);
     return null;
   }
 };
@@ -73,7 +76,8 @@ const getCachedRates = async (base: Currency): Promise<CachedRates | null> => {
     const cached: CachedRates = JSON.parse(raw);
     if (Date.now() - cached.fetchedAt > FX_CACHE_TTL) return null; // expired
     return cached;
-  } catch {
+  } catch (error) {
+    console.warn('getCachedRates parse error:', error);
     return null;
   }
 };
@@ -92,7 +96,7 @@ export const getRate = async (from: Currency, to: Currency): Promise<FxResult> =
   }
 
   // Try cache first
-  let cached = await getCachedRates(from);
+  const cached = await getCachedRates(from);
   if (cached && cached.rates[to]) {
     return {
       converted: cached.rates[to],
@@ -142,7 +146,7 @@ export const getRatesForBase = async (base: Currency): Promise<{
   timestamp: string;
   isOffline: boolean;
 }> => {
-  let cached = await getCachedRates(base);
+  const cached = await getCachedRates(base);
   if (cached) {
     return { rates: cached.rates, timestamp: cached.timestamp, isOffline: false };
   }

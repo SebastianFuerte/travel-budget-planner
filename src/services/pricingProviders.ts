@@ -13,6 +13,15 @@ const formatDateForUrl = (date: Date): string => {
 
 const encodeSearch = (text: string): string => encodeURIComponent(text);
 
+// Converts "Bogotá, Colombia" → "bogota" for URL path segments
+const slugify = (text: string): string =>
+  text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // remove accents
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')     // spaces/special chars → hyphen
+    .replace(/^-|-$/g, '');          // trim leading/trailing hyphens
+
 export const PRICING_PROVIDERS: PricingProvider[] = [
   // --- ACCOMMODATION ---
   {
@@ -120,6 +129,8 @@ export interface FlightProvider {
     startDate: Date,
     endDate: Date,
     people: number,
+    originIATA?: string,   // IATA code of departure airport (e.g. BOG)
+    originCity?: string,   // Display name for fallback
   ) => string;
 }
 
@@ -128,26 +139,56 @@ export const FLIGHT_PROVIDERS: FlightProvider[] = [
     id: 'google_flights',
     name: 'Google Flights',
     icon: '✈️',
-    getSearchUrl: (dest, country, start, end, people) => {
-      return `https://www.google.com/travel/flights?q=flights+to+${encodeSearch(dest + ' ' + country)}&d=${formatDateForUrl(start)}&r=${formatDateForUrl(end)}&px=${people}`;
+    getSearchUrl: (dest, country, start, end, people, originIATA, originCity) => {
+      // Google Flights: accepts free text, works great with IATA codes too
+      const from = originCity || originIATA || '';
+      const q = from
+        ? `${from} to ${dest} ${country} flights`
+        : `flights to ${dest} ${country}`;
+      return `https://www.google.com/travel/flights?q=${encodeSearch(q)}`;
     },
   },
   {
     id: 'skyscanner',
     name: 'Skyscanner',
     icon: '🔍',
-    getSearchUrl: (dest, country, start, end, people) => {
-      const from = formatDateForUrl(start).replace(/-/g, '');
-      const to = formatDateForUrl(end).replace(/-/g, '');
-      return `https://www.skyscanner.com/transport/flights/anywhere/${encodeSearch(dest)}/${from}/${to}/?adults=${people}`;
+    getSearchUrl: (dest, country, start, end, people, originIATA) => {
+      // Skyscanner path format requires IATA codes — now reliable!
+      const from = originIATA || 'anywhere';
+      const depart = formatDateForUrl(start).replace(/-/g, '');
+      const ret    = formatDateForUrl(end).replace(/-/g, '');
+      const destSlug = slugify(dest);
+      if (originIATA) {
+        return `https://www.skyscanner.com/transport/flights/${originIATA.toLowerCase()}/${destSlug}/${depart}/${ret}/?adults=${people}&cabinclass=economy`;
+      }
+      return `https://www.skyscanner.com/transport/flights/anywhere/${destSlug}/${depart}/${ret}/?adults=${people}&cabinclass=economy`;
     },
   },
   {
     id: 'kayak',
     name: 'Kayak',
     icon: '🛩️',
-    getSearchUrl: (dest, country, start, end, people) => {
-      return `https://www.kayak.com/flights/anywhere-${encodeSearch(dest)}/${formatDateForUrl(start)}/${formatDateForUrl(end)}/${people}adults`;
+    getSearchUrl: (dest, country, start, end, people, originIATA) => {
+      // Kayak path: /flights/BOG/NRT/2025-05-10/2025-05-20/2adults — IATA required
+      const destSlug = slugify(dest);
+      const depart = formatDateForUrl(start);
+      const ret    = formatDateForUrl(end);
+      if (originIATA) {
+        return `https://www.kayak.com/flights/${originIATA}/${destSlug}/${depart}/${ret}/${people}adults`;
+      }
+      return `https://www.kayak.com/flights/anywhere/${destSlug}/${depart}/${ret}/${people}adults`;
+    },
+  },
+  {
+    id: 'kiwi',
+    name: 'Kiwi.com',
+    icon: '🥝',
+    getSearchUrl: (dest, country, start, end, people, originIATA, originCity) => {
+      // Kiwi works well with IATA or city names
+      const from = originIATA || originCity || 'Anywhere';
+      const depart = formatDateForUrl(start);
+      const ret    = formatDateForUrl(end);
+      return `https://www.kiwi.com/en/search/results/${encodeSearch(from)}/${encodeSearch(dest)}/${depart}/${ret}?adults=${people}&cabinClass=economy`;
     },
   },
 ];

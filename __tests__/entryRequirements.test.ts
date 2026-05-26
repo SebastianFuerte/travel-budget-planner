@@ -127,9 +127,13 @@ describe('Entry Requirements - Lookups', () => {
     expect(req1!.status).toBe(req2!.status);
   });
 
-  it('should return null for unknown combination', () => {
+  it('should return a conservative fallback for unknown combination', () => {
     const req = getEntryRequirements('Antarctica', 'Mars');
-    expect(req).toBeNull();
+    // The service always returns a fallback (never null) so users always see
+    // a conservative VISA_REQUIRED placeholder with a note to verify officially.
+    expect(req).not.toBeNull();
+    expect(req!.status).toBe('VISA_REQUIRED');
+    expect(req!.destinationCountry).toBe('Mars');
   });
 
   it('should return destinations list', () => {

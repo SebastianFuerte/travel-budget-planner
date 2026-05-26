@@ -943,9 +943,126 @@ const COUNTRY_CITIES: CountryCity[] = [
   },
 ];
 
+export interface LocalizedOption {
+  label: string;
+  value: string;
+}
+
+const COUNTRY_NAMES_ES: Record<string, string> = {
+  'Afghanistan': 'Afganistán', 'Albania': 'Albania', 'Algeria': 'Argelia',
+  'Andorra': 'Andorra', 'Angola': 'Angola', 'Antigua and Barbuda': 'Antigua y Barbuda',
+  'Argentina': 'Argentina', 'Armenia': 'Armenia', 'Australia': 'Australia',
+  'Austria': 'Austria', 'Azerbaijan': 'Azerbaiyán', 'Bahamas': 'Bahamas',
+  'Bahrain': 'Baréin', 'Bangladesh': 'Bangladés', 'Barbados': 'Barbados',
+  'Belarus': 'Bielorrusia', 'Belgium': 'Bélgica', 'Belize': 'Belice',
+  'Benin': 'Benín', 'Bhutan': 'Bután', 'Bolivia': 'Bolivia',
+  'Bosnia and Herzegovina': 'Bosnia y Herzegovina', 'Botswana': 'Botsuana',
+  'Brazil': 'Brasil', 'Brunei': 'Brunéi', 'Bulgaria': 'Bulgaria',
+  'Burkina Faso': 'Burkina Faso', 'Burundi': 'Burundi', 'Cambodia': 'Camboya',
+  'Cameroon': 'Camerún', 'Canada': 'Canadá', 'Central African Republic': 'República Centroafricana',
+  'Chad': 'Chad', 'Chile': 'Chile', 'China': 'China', 'Colombia': 'Colombia',
+  'Comoros': 'Comoras', 'Costa Rica': 'Costa Rica', 'Croatia': 'Croacia',
+  'Cuba': 'Cuba', 'Cyprus': 'Chipre', 'Czech Republic': 'República Checa',
+  'DR Congo': 'Rep. Dem. del Congo', 'Denmark': 'Dinamarca', 'Djibouti': 'Yibuti',
+  'Dominican Republic': 'República Dominicana', 'Ecuador': 'Ecuador',
+  'Egypt': 'Egipto', 'El Salvador': 'El Salvador', 'Equatorial Guinea': 'Guinea Ecuatorial',
+  'Eritrea': 'Eritrea', 'Estonia': 'Estonia', 'Eswatini': 'Esuatini',
+  'Ethiopia': 'Etiopía', 'Fiji': 'Fiyi', 'Finland': 'Finlandia',
+  'France': 'Francia', 'Gabon': 'Gabón', 'Gambia': 'Gambia',
+  'Georgia': 'Georgia', 'Germany': 'Alemania', 'Ghana': 'Ghana',
+  'Greece': 'Grecia', 'Guatemala': 'Guatemala', 'Guinea': 'Guinea',
+  'Guyana': 'Guyana', 'Haiti': 'Haití', 'Honduras': 'Honduras',
+  'Hungary': 'Hungría', 'Iceland': 'Islandia', 'India': 'India',
+  'Indonesia': 'Indonesia', 'Iran': 'Irán', 'Iraq': 'Irak',
+  'Ireland': 'Irlanda', 'Israel': 'Israel', 'Italy': 'Italia',
+  'Ivory Coast': 'Costa de Marfil', 'Jamaica': 'Jamaica', 'Japan': 'Japón',
+  'Jordan': 'Jordania', 'Kazakhstan': 'Kazajistán', 'Kenya': 'Kenia',
+  'Kuwait': 'Kuwait', 'Kyrgyzstan': 'Kirguistán', 'Laos': 'Laos',
+  'Latvia': 'Letonia', 'Lebanon': 'Líbano', 'Lesotho': 'Lesoto',
+  'Libya': 'Libia', 'Liechtenstein': 'Liechtenstein', 'Lithuania': 'Lituania',
+  'Luxembourg': 'Luxemburgo', 'Madagascar': 'Madagascar', 'Malawi': 'Malaui',
+  'Malaysia': 'Malasia', 'Maldives': 'Maldivas', 'Mali': 'Malí',
+  'Malta': 'Malta', 'Mauritania': 'Mauritania', 'Mauritius': 'Mauricio',
+  'Mexico': 'México', 'Moldova': 'Moldavia', 'Monaco': 'Mónaco',
+  'Mongolia': 'Mongolia', 'Montenegro': 'Montenegro', 'Morocco': 'Marruecos',
+  'Mozambique': 'Mozambique', 'Myanmar': 'Birmania', 'Namibia': 'Namibia',
+  'Nepal': 'Nepal', 'Netherlands': 'Países Bajos', 'New Zealand': 'Nueva Zelanda',
+  'Nicaragua': 'Nicaragua', 'Niger': 'Níger', 'Nigeria': 'Nigeria',
+  'North Korea': 'Corea del Norte', 'North Macedonia': 'Macedonia del Norte',
+  'Norway': 'Noruega', 'Oman': 'Omán', 'Pakistan': 'Pakistán',
+  'Palestine': 'Palestina', 'Panama': 'Panamá', 'Papua New Guinea': 'Papúa Nueva Guinea',
+  'Paraguay': 'Paraguay', 'Peru': 'Perú', 'Philippines': 'Filipinas',
+  'Poland': 'Polonia', 'Portugal': 'Portugal', 'Qatar': 'Catar',
+  'Romania': 'Rumanía', 'Russia': 'Rusia', 'Rwanda': 'Ruanda',
+  'Saudi Arabia': 'Arabia Saudita', 'Senegal': 'Senegal', 'Serbia': 'Serbia',
+  'Sierra Leone': 'Sierra Leona', 'Singapore': 'Singapur', 'Slovakia': 'Eslovaquia',
+  'Slovenia': 'Eslovenia', 'Somalia': 'Somalia', 'South Africa': 'Sudáfrica',
+  'South Korea': 'Corea del Sur', 'South Sudan': 'Sudán del Sur',
+  'Spain': 'España', 'Sri Lanka': 'Sri Lanka', 'Sudan': 'Sudán',
+  'Sweden': 'Suecia', 'Switzerland': 'Suiza', 'Syria': 'Siria',
+  'Taiwan': 'Taiwán', 'Tajikistan': 'Tayikistán', 'Tanzania': 'Tanzania',
+  'Thailand': 'Tailandia', 'Timor-Leste': 'Timor Oriental', 'Togo': 'Togo',
+  'Trinidad and Tobago': 'Trinidad y Tobago', 'Tunisia': 'Túnez',
+  'Turkey': 'Turquía', 'Turkmenistan': 'Turkmenistán',
+  'UAE': 'Emiratos Árabes Unidos', 'Uganda': 'Uganda', 'Ukraine': 'Ucrania',
+  'United Kingdom': 'Reino Unido', 'United States': 'Estados Unidos',
+  'Uruguay': 'Uruguay', 'Uzbekistan': 'Uzbekistán',
+  'Vatican City': 'Ciudad del Vaticano', 'Venezuela': 'Venezuela',
+  'Vietnam': 'Vietnam', 'Yemen': 'Yemen', 'Zambia': 'Zambia',
+  'Zimbabwe': 'Zimbabue',
+};
+
+const CITY_NAMES_ES: Record<string, string> = {
+  'Tokyo': 'Tokio', 'Vienna': 'Viena', 'Athens': 'Atenas',
+  'Brussels': 'Bruselas', 'Moscow': 'Moscú', 'Copenhagen': 'Copenhague',
+  'Warsaw': 'Varsovia', 'Bucharest': 'Bucarest', 'Belgrade': 'Belgrado',
+  'Kyiv': 'Kiev', 'Beijing': 'Pekín', 'Cairo': 'El Cairo',
+  'New Delhi': 'Nueva Delhi', 'Cape Town': 'Ciudad del Cabo',
+  'Rome': 'Roma', 'Florence': 'Florencia', 'Venice': 'Venecia',
+  'Naples': 'Nápoles', 'Cologne': 'Colonia',
+  'Prague': 'Praga', 'Stockholm': 'Estocolmo', 'Helsinki': 'Helsinki',
+  'Dublin': 'Dublín', 'Edinburgh': 'Edimburgo',
+  'Geneva': 'Ginebra', 'Lisbon': 'Lisboa',
+  'Seoul': 'Seúl', 'Taipei': 'Taipéi',
+  'New York': 'Nueva York', 'Los Angeles': 'Los Ángeles',
+  'Mexico City': 'Ciudad de México', 'Kolkata': 'Calcuta',
+  'Nairobi': 'Nairobi', 'Addis Ababa': 'Adís Abeba',
+  'Tunis': 'Túnez', 'Algiers': 'Argel',
+  'Accra': 'Acra', 'Johannesburg': 'Johannesburgo',
+  'Munich': 'Múnich', 'Seville': 'Sevilla',
+};
+
+/** Get country display name in given language */
+export const getCountryDisplayName = (country: string, lang: string): string => {
+  if (lang === 'es') return COUNTRY_NAMES_ES[country] ?? country;
+  return country;
+};
+
+/** Get city display name in given language */
+export const getCityDisplayName = (city: string, lang: string): string => {
+  if (lang === 'es') return CITY_NAMES_ES[city] ?? city;
+  return city;
+};
+
 /** Get all countries sorted */
 export const getCountries = (): string[] => {
   return COUNTRY_CITIES.map(c => c.country).sort();
+};
+
+/** Get all countries as localized { label, value } options (value always English) */
+export const getCountriesLocalized = (lang: string): LocalizedOption[] => {
+  return COUNTRY_CITIES
+    .map(c => ({ label: getCountryDisplayName(c.country, lang), value: c.country }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+};
+
+/** Get cities for a country as localized { label, value } options */
+export const getCitiesForCountryLocalized = (country: string, lang: string): LocalizedOption[] => {
+  const entry = COUNTRY_CITIES.find(c => c.country.toLowerCase() === country.toLowerCase());
+  if (!entry) return [];
+  return entry.cities
+    .map(city => ({ label: getCityDisplayName(city, lang), value: city }))
+    .sort((a, b) => a.label.localeCompare(b.label));
 };
 
 /** Get cities for a specific country */

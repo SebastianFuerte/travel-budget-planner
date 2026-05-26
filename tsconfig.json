@@ -11,7 +11,7 @@
     "skipLibCheck": true,
     "jsx": "react-native",
     "esModuleInterop": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true
   },

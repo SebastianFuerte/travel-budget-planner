@@ -81,20 +81,16 @@ export const calculateCategoryTotals = (
   numberOfDays: number,
   numberOfPeople: number
 ): Record<keyof BudgetCategories, { min: number; average: number; max: number }> => {
-  const result: any = {};
-
-  (Object.keys(budget) as Array<keyof BudgetCategories>).forEach((key) => {
-    const category = budget[key];
-    const totals = calculateCategoryTotal(category, numberOfDays);
-    
-    result[key] = {
-      min: totals.min * numberOfPeople,
-      average: totals.average * numberOfPeople,
-      max: totals.max * numberOfPeople,
-    };
-  });
-
-  return result;
+  return Object.fromEntries(
+    (Object.keys(budget) as Array<keyof BudgetCategories>).map((key) => {
+      const totals = calculateCategoryTotal(budget[key], numberOfDays);
+      return [key, {
+        min: totals.min * numberOfPeople,
+        average: totals.average * numberOfPeople,
+        max: totals.max * numberOfPeople,
+      }];
+    })
+  ) as Record<keyof BudgetCategories, { min: number; average: number; max: number }>;
 };
 
 /**
@@ -131,7 +127,7 @@ export const calculateTripSummaryWithConfirmed = (trip: Trip): TripSummary => {
     const confirmed = confirmedPrices?.filter(cp => cp.category === key);
     if (confirmed && confirmed.length > 0) {
       // Use the latest confirmed price for this category
-      const latest = confirmed.sort(
+      const latest = [...confirmed].sort(
         (a, b) => new Date(b.confirmedAt).getTime() - new Date(a.confirmedAt).getTime()
       )[0];
       const confirmedTotal = latest.amount * numberOfDays;

@@ -2,7 +2,7 @@
 // Document vault with file upload: camera, photo library, PDF picker
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform, Image, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Platform, Image, TextInput, ScrollView } from 'react-native';
 import * as Sharing from 'expo-sharing';
 import { infoAlert } from '../../utils/alert';
 import colors from '../../theme/colors';
@@ -15,6 +15,7 @@ import {
   DOCUMENT_CATEGORIES,
 } from '../../types/documents';
 import { useDocumentStore } from '../../store/documentStore';
+import { useSubscriptionStore } from '../../store/subscriptionStore';
 import { takePhoto, pickImage, pickDocument, deleteStoredFile, PickedFile } from '../../services/filePicker';
 
 interface DocumentVaultProps {
@@ -24,13 +25,18 @@ interface DocumentVaultProps {
 
 type UploadMethod = 'camera' | 'photo_library' | 'file';
 
+const FREE_DOC_LIMIT = 3;
+
 export const DocumentVault: React.FC<DocumentVaultProps> = ({ tripId, documents }) => {
   const { addDocument, removeDocument } = useDocumentStore();
+  const { canAddDocument, isPro } = useSubscriptionStore();
   const [showAddForm, setShowAddForm] = useState(false);
+  const atLimit = !canAddDocument(documents.length);
   const [selectedCategory, setSelectedCategory] = useState<DocumentCategory | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [previewUri, setPreviewUri] = useState<string | null>(null);
   const [qrInput, setQrInput] = useState('');
+  const [expiryInput, setExpiryInput] = useState(''); // YYYY-MM-DD
   const [qrModal, setQrModal] = useState<{ title: string; value: string } | null>(null);
 
   const handleSelectCategory = (category: DocumentCategory) => {
@@ -72,11 +78,13 @@ export const DocumentVault: React.FC<DocumentVaultProps> = ({ tripId, documents 
         fileType: file.fileType,
         notes: file.fileName,
         qrCode: qrInput.trim() || undefined,
+        expirationDate: expiryInput.trim() || undefined,
       });
 
       setSelectedCategory(null);
       setShowAddForm(false);
       setQrInput('');
+      setExpiryInput('');
       infoAlert('Document Added', `${categoryInfo.label} saved successfully.`);
     } catch (error: any) {
       const msg = error?.message || 'Failed to pick file';
@@ -102,10 +110,12 @@ export const DocumentVault: React.FC<DocumentVaultProps> = ({ tripId, documents 
       title,
       notes: 'Metadata only — no file attached',
       qrCode: qrInput.trim() || undefined,
+      expirationDate: expiryInput.trim() || undefined,
     });
     setSelectedCategory(null);
     setShowAddForm(false);
     setQrInput('');
+    setExpiryInput('');
   };
 
   const handleDeleteDocument = async (documentId: string) => {
@@ -167,7 +177,14 @@ export const DocumentVault: React.FC<DocumentVaultProps> = ({ tripId, documents 
         <Text style={styles.title}>Document Vault</Text>
         <Button
           title={showAddForm ? 'Cancel' : '+ Add'}
-          onPress={() => { setShowAddForm(!showAddForm); setSelectedCategory(null); }}
+          onPress={() => {
+            if (!showAddForm && atLimit) {
+              infoAlert('Pro Feature', `Free plan allows up to ${FREE_DOC_LIMIT} documents per trip. Upgrade to Pro for unlimited documents.`);
+              return;
+            }
+            setShowAddForm(!showAddForm);
+            setSelectedCategory(null);
+          }}
           variant={showAddForm ? 'outline' : 'primary'}
           size="small"
         />
@@ -175,7 +192,14 @@ export const DocumentVault: React.FC<DocumentVaultProps> = ({ tripId, documents 
 
       <Text style={styles.subtitle}>
         All documents stored locally on your device only.
+        {!isPro() && ` (${documents.length}/${FREE_DOC_LIMIT} free)`}
       </Text>
+
+      {atLimit && (
+        <View style={styles.limitBanner}>
+          <Text style={styles.limitText}>🔒 Free plan limit reached ({FREE_DOC_LIMIT} docs). Upgrade to Pro for unlimited.</Text>
+        </View>
+      )}
 
       {/* Step 1: Category selection */}
       {showAddForm && !selectedCategory && (
@@ -257,6 +281,27 @@ export const DocumentVault: React.FC<DocumentVaultProps> = ({ tripId, documents 
               />
               <Text style={styles.qrInputHint}>
                 The QR will be shown when you tap the document.
+              </Text>
+            </View>
+          )}
+
+          {/* Expiration date — shown for passport, visa, insurance */}
+          {(selectedCategory === 'passport' || selectedCategory === 'visa' || selectedCategory === 'insurance') && (
+            <View style={styles.expiryContainer}>
+              <Text style={styles.expiryLabel}>📅 Expiration Date (optional)</Text>
+              <TextInput
+                style={styles.expiryInput}
+                value={expiryInput}
+                onChangeText={setExpiryInput}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor={colors.textTertiary}
+                keyboardType="numbers-and-punctuation"
+                maxLength={10}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <Text style={styles.expiryHint}>
+                Shown as a badge on the document — alerts when expiring soon.
               </Text>
             </View>
           )}
@@ -394,6 +439,26 @@ const styles = StyleSheet.create({
     color: colors.textTertiary,
     marginTop: 6,
   },
+  expiryContainer: {
+    backgroundColor: colors.background,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 12,
+    marginBottom: 12,
+  },
+  expiryLabel: { fontSize: 13, fontWeight: '600', color: colors.text, marginBottom: 8 },
+  expiryInput: {
+    fontSize: 13,
+    color: colors.text,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: colors.backgroundSecondary,
+  },
+  expiryHint: { fontSize: 11, color: colors.textTertiary, marginTop: 6 },
   metadataLink: { marginTop: 4 },
   metadataLinkText: { fontSize: 12, color: colors.textTertiary, textAlign: 'center' },
   backLink: { marginTop: 8 },
@@ -411,6 +476,19 @@ const styles = StyleSheet.create({
   emptySubtext: {
     fontSize: 13, color: colors.textTertiary, textAlign: 'center', paddingHorizontal: 32,
     lineHeight: 19,
+  },
+  limitBanner: {
+    backgroundColor: '#FEF3C7',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  limitText: {
+    fontSize: 12,
+    color: '#92400E',
+    fontWeight: '500',
   },
   documentList: { gap: 0 },
   // Image preview

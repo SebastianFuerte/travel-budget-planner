@@ -24,12 +24,12 @@
 
 | Métrica            | Valor                     |
 |--------------------|---------------------------|
-| Features completadas | **41 / 72** (57%)        |
+| Features completadas | **54 / 72** (75%)        |
 | Tests pasando      | **67 / 67** (100%)       |
 | Build status       | ✅ Clean (0 errores)      |
 | Plataformas        | Web ✅ · iOS 🚧 · Android 📋 |
-| Versión actual     | **MVP v1.0 + Phase 2**   |
-| Próximo milestone  | MVP v1.1 — Sprint 1 complete |
+| Versión actual     | **MVP v1.1 — Sprint 1+2 done** |
+| Próximo milestone  | v2.0 Beta — Sprint 3 (Monetization) |
 
 ---
 
@@ -149,11 +149,11 @@ npx expo start --tunnel
 |----------|--------------------------------|------------|--------------|--------------|
 | TEST-002 | iPhone Physical Testing        | 🟢 Small   | —            | 🚧 In Progress |
 | TEST-003 | Android Device/Emulator        | 🟡 Medium  | TEST-002     | 📋 Planned   |
-| MIG-013  | Requirements Database 20+      | 🟡 Medium  | MIG-002      | 📋 Planned   |
-| MIG-014  | Am I Ready Widget              | 🟡 Medium  | MIG-004      | 📋 Planned   |
-| MIG-015  | Readiness Calculator Logic     | 🟢 Small   | MIG-013/014  | 📋 Planned   |
-| MIG-016  | Document Expiration Tracking   | 🟢 Small   | MIG-004      | 📋 Planned   |
-| MIG-017  | Free/Pro Document Limits       | 🟢 Small   | MON-001      | 📋 Planned   |
+| MIG-013  | Requirements Database 20+      | 🟡 Medium  | MIG-002      | ✅ Done (200+ combos QUICK table) |
+| MIG-014  | Am I Ready Widget              | 🟡 Medium  | MIG-004      | ✅ Done      |
+| MIG-015  | Readiness Calculator Logic     | 🟢 Small   | MIG-013/014  | ✅ Done      |
+| MIG-016  | Document Expiration Tracking   | 🟢 Small   | MIG-004      | ✅ Done      |
+| MIG-017  | Free/Pro Document Limits       | 🟢 Small   | MON-001      | ✅ Done (3 docs free) |
 
 **Sprint 1 definition of done:**
 - ✅ QA Checklist completo en iPhone (45 ítems)
@@ -169,14 +169,14 @@ npx expo start --tunnel
 
 | ID     | Feature                    | Esfuerzo   | Dependencias | Status     |
 |--------|----------------------------|------------|--------------|------------|
-| UX-001 | Onboarding 3-Screen Flow   | 🟡 Medium  | —            | 📋 Planned |
-| UX-002 | Trip Search + Filter       | 🟢 Small   | CORE-006     | 📋 Planned |
-| UX-003 | Budget Edit Post-Creation  | 🟡 Medium  | CORE-001     | 📋 Planned |
-| UX-004 | Visual Charts Budget       | 🟡 Medium  | CORE-001     | 📋 Planned |
+| UX-001 | Onboarding 3-Screen Flow   | 🟡 Medium  | —            | ✅ Done    |
+| UX-002 | Trip Search + Filter       | 🟢 Small   | CORE-006     | ✅ Done    |
+| UX-003 | Budget Edit Post-Creation  | 🟡 Medium  | CORE-001     | ✅ Done    |
+| UX-004 | Visual Charts Budget       | 🟡 Medium  | CORE-001     | ✅ Done    |
 | UX-005 | Export Budget Image/PDF    | 🟡 Medium  | UX-004       | 📋 Planned |
-| UX-006 | Trip Tags Labels           | 🟢 Small   | CORE-006     | 📋 Planned |
-| UX-007 | Templates Expansion 15+    | 🟡 Medium  | CORE-003     | 📋 Planned |
-| UX-008 | Archive Completed Trips    | 🟢 Small   | CORE-006     | 📋 Planned |
+| UX-006 | Trip Tags Labels           | 🟢 Small   | CORE-006     | ✅ Done    |
+| UX-007 | Templates Expansion 15+    | 🟡 Medium  | CORE-003     | ✅ Done (150+ ciudades) |
+| UX-008 | Archive Completed Trips    | 🟢 Small   | CORE-006     | ✅ Done    |
 
 ---
 
@@ -282,14 +282,14 @@ npx expo start --tunnel
 | Categoría    | Total | Done | In Progress | Planned | Future |
 |--------------|-------|------|-------------|---------|--------|
 | Budget/Core  | 16    | 16   | 0           | 0       | 0      |
-| Migration    | 17    | 12   | 0           | 5       | 0      |
-| UI/UX        | 10    | 6    | 0           | 4 (S2)  | 2      |
+| Migration    | 17    | 17   | 0           | 0       | 0      |
+| UI/UX        | 10    | 9    | 0           | 1 (S2)  | 2      |
 | Monetization | 9     | 3    | 0           | 6 (S3)  | 0      |
 | Technical    | 10    | 1    | 1           | 5 (S4)  | 3      |
 | Marketing    | 11    | 0    | 0           | 11      | 0      |
 | Post-Launch  | 5     | 0    | 0           | 5       | 0      |
 | Future       | 12    | 0    | 0           | 0       | 12     |
-| **TOTAL**    | **72**| **38**| **1**      | **36**  | **17** |
+| **TOTAL**    | **72**| **46**| **1**      | **28**  | **17** |
 
 ---
 

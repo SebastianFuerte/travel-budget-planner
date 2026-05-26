@@ -8,6 +8,7 @@ import { format } from 'date-fns';
 import * as Clipboard from 'expo-clipboard';
 import { ScreenContainer } from '../../src/components/layout/ScreenContainer';
 import { BudgetCalculator } from '../../src/components/trip/BudgetCalculator';
+import { BudgetChart } from '../../src/components/trip/BudgetChart';
 import { Button } from '../../src/components/ui/Button';
 import { useTripStore } from '../../src/store';
 import { BudgetCategories } from '../../src/types';
@@ -17,19 +18,35 @@ import { infoAlert } from '../../src/utils/alert';
 import { calculateTripSummaryWithConfirmed, calculateCategoryTotals, getConfirmedPriceForCategory } from '../../src/services/budgetEngine';
 import { formatCurrency } from '../../src/utils/currency';
 import { CATEGORY_LABELS } from '../../src/utils/constants';
+import { useTranslation } from '../../src/i18n';
+import { getCountryDisplayName, getCityDisplayName } from '../../src/services/countries';
 
 export default function TripDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const getTripById = useTripStore(state => state.getTripById);
-  const trip = getTripById(id);
+  const trip = useTripStore(state => state.trips.find(t => t.id === id));
+  const archiveTrip = useTripStore(state => state.archiveTrip);
+  const unarchiveTrip = useTripStore(state => state.unarchiveTrip);
+  const { t, language } = useTranslation();
+
+  const handleArchiveToggle = async () => {
+    if (!trip) return;
+    if (trip.archived) {
+      await unarchiveTrip(trip.id);
+      infoAlert(t.trip.unarchivedTitle, t.trip.unarchivedMsg);
+    } else {
+      await archiveTrip(trip.id);
+      infoAlert(t.trip.archivedTitle, t.trip.archivedMsg);
+      safeGoBack();
+    }
+  };
 
   if (!trip) {
     return (
       <ScreenContainer>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Trip not found</Text>
+          <Text style={styles.errorText}>{t.trip.notFound}</Text>
           <Button
-            title="Go Back"
+            title={t.trip.goBack}
             onPress={() => safeGoBack()}
           />
         </View>
@@ -47,49 +64,61 @@ export default function TripDetailScreen() {
       trip.numberOfPeople,
     );
 
+    const CATEGORY_ICONS: Partial<Record<keyof BudgetCategories, string>> = {
+      accommodation: '🏨',
+      food: '🍽️',
+      localTransport: '🚌',
+      activities: '🎭',
+      insurance: '🛡️',
+      internet: '📶',
+      extras: '🛍️',
+    };
+
+    const separator = '━━━━━━━━━━━━━━━━━━━━━━━━';
     const lines: string[] = [
-      `${trip.destination}`,
-      `${trip.city}, ${trip.country}`,
-      `${format(trip.startDate, 'MMM dd, yyyy')} - ${format(trip.endDate, 'MMM dd, yyyy')}`,
-      `${summary.numberOfDays} days | ${trip.numberOfPeople} ${trip.numberOfPeople > 1 ? 'people' : 'person'} | ${trip.travelStyle} style`,
-      '',
-      '--- Budget Breakdown ---',
+      `✈️ ${trip.destination}`,
+      `📍 ${trip.city}, ${trip.country}`,
+      `📅 ${format(trip.startDate, 'MMM dd')} – ${format(trip.endDate, 'MMM dd, yyyy')}`,
+      `👥 ${summary.numberOfDays} days · ${trip.numberOfPeople} ${trip.numberOfPeople > 1 ? 'travelers' : 'traveler'} · ${trip.travelStyle}`,
+      separator,
+      '💰 BUDGET BREAKDOWN',
+      separator,
     ];
 
     (Object.keys(categoryTotals) as Array<keyof BudgetCategories>).forEach((key) => {
       const cat = categoryTotals[key];
       const confirmed = getConfirmedPriceForCategory(trip.confirmedPrices, key);
       const label = CATEGORY_LABELS[key] || key;
+      const icon = CATEGORY_ICONS[key] || '•';
       if (confirmed) {
         const total = confirmed.amount * summary.numberOfDays * trip.numberOfPeople;
-        lines.push(`  ${label}: ${formatCurrency(total, trip.currency)} (confirmed via ${confirmed.source})`);
+        lines.push(`${icon} ${label}: ${formatCurrency(total, trip.currency)} ✓ ${confirmed.source}`);
       } else {
-        lines.push(`  ${label}: ${formatCurrency(cat.average, trip.currency)} (estimated, range: ${formatCurrency(cat.min, trip.currency)} - ${formatCurrency(cat.max, trip.currency)})`);
+        lines.push(`${icon} ${label}: ${formatCurrency(cat.average, trip.currency)}  (${formatCurrency(cat.min, trip.currency)}–${formatCurrency(cat.max, trip.currency)})`);
       }
     });
 
     if (trip.flightBudget) {
       const flightAmt = trip.flightBudget.confirmed?.amount ?? trip.flightBudget.estimated ?? 0;
       const flightLabel = trip.flightBudget.confirmed
-        ? `confirmed via ${trip.flightBudget.confirmed.source}`
+        ? `✓ ${trip.flightBudget.confirmed.source}`
         : 'estimated';
-      lines.push(`  Flights (one-time): ${formatCurrency(flightAmt, trip.currency)} (${flightLabel})`);
+      lines.push(`✈️  Flights (total): ${formatCurrency(flightAmt, trip.currency)}  ${flightLabel}`);
     }
 
     const flightCost = trip.flightBudget?.confirmed?.amount ?? trip.flightBudget?.estimated ?? 0;
-    lines.push('');
-    lines.push(`Daily Budget Estimate: ${formatCurrency(summary.totalAverage, trip.currency)}`);
+    lines.push(separator);
+    lines.push(`📊 Daily average:  ${formatCurrency(summary.dailyAverage, trip.currency)}/day`);
+    lines.push(`📊 Trip total:      ${formatCurrency(summary.totalAverage, trip.currency)}`);
     if (flightCost > 0) {
-      lines.push(`Flights: ${formatCurrency(flightCost, trip.currency)}`);
-      lines.push(`Grand Total: ${formatCurrency(summary.totalAverage + flightCost, trip.currency)}`);
+      lines.push(`📊 Total + flights: ${formatCurrency(summary.totalAverage + flightCost, trip.currency)}`);
     }
-    lines.push(`Range: ${formatCurrency(summary.totalMin, trip.currency)} - ${formatCurrency(summary.totalMax, trip.currency)}`);
-    lines.push(`Per Day: ${formatCurrency(summary.dailyAverage, trip.currency)}`);
+    lines.push(`📊 Range:           ${formatCurrency(summary.totalMin, trip.currency)} – ${formatCurrency(summary.totalMax, trip.currency)}`);
     if (trip.numberOfPeople > 1) {
-      lines.push(`Per Person: ${formatCurrency(summary.perPersonAverage, trip.currency)}`);
+      lines.push(`📊 Per person:      ${formatCurrency(summary.perPersonAverage, trip.currency)}`);
     }
-    lines.push('');
-    lines.push('Generated with Travel Budget Planner');
+    lines.push(separator);
+    lines.push('🌍 Travel Budget Planner');
 
     const text = lines.join('\n');
 
@@ -102,10 +131,7 @@ export default function TripDetailScreen() {
   };
 
   const handleEdit = () => {
-    infoAlert(
-      'Edit Trip',
-      'Trip editing would open here. Use the Create screen as reference for implementation.'
-    );
+    router.push(`/trip/edit/${trip.id}`);
   };
 
   return (
@@ -113,17 +139,17 @@ export default function TripDetailScreen() {
       <View style={styles.header}>
         <View style={styles.headerRow}>
           <TouchableOpacity onPress={() => safeGoBack()} style={styles.backButton}>
-            <Text style={styles.backText}>← Back</Text>
+            <Text style={styles.backText}>← {t.trip.back}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => safeGoBack('/(tabs)')}>
-            <Text style={styles.allTripsLink}>All Trips</Text>
+            <Text style={styles.allTripsLink}>{t.trip.allTrips}</Text>
           </TouchableOpacity>
         </View>
       </View>
 
       <View style={styles.titleSection}>
         <Text style={styles.title}>{trip.destination}</Text>
-        <Text style={styles.location}>{trip.city}, {trip.country}</Text>
+        <Text style={styles.location}>{getCityDisplayName(trip.city, language)}, {getCountryDisplayName(trip.country, language)}</Text>
         <Text style={styles.dates}>
           {format(trip.startDate, 'MMM dd, yyyy')} - {format(trip.endDate, 'MMM dd, yyyy')}
         </Text>
@@ -131,9 +157,11 @@ export default function TripDetailScreen() {
 
       <BudgetCalculator trip={trip} />
 
+      <BudgetChart trip={trip} />
+
       {trip.notes && (
         <View style={styles.notesSection}>
-          <Text style={styles.notesTitle}>Notes</Text>
+          <Text style={styles.notesTitle}>{t.trip.notes}</Text>
           <Text style={styles.notesText}>{trip.notes}</Text>
         </View>
       )}
@@ -148,8 +176,8 @@ export default function TripDetailScreen() {
           <View style={styles.docsButtonContent}>
             <Text style={styles.docsButtonIcon}>🛂</Text>
             <View style={styles.docsButtonText}>
-              <Text style={styles.docsButtonTitle}>Documents & Entry Requirements</Text>
-              <Text style={styles.docsButtonSubtitle}>Visa info, document vault, timeline</Text>
+              <Text style={styles.docsButtonTitle}>{t.trip.docsTitle}</Text>
+              <Text style={styles.docsButtonSubtitle}>{t.trip.docsSubtitle}</Text>
             </View>
             <Text style={styles.docsArrow}>→</Text>
           </View>
@@ -163,8 +191,8 @@ export default function TripDetailScreen() {
           <View style={styles.docsButtonContent}>
             <Text style={styles.docsButtonIcon}>📱</Text>
             <View style={styles.docsButtonText}>
-              <Text style={[styles.docsButtonTitle, { color: '#FFFFFF' }]}>Migration Mode</Text>
-              <Text style={[styles.docsButtonSubtitle, { color: '#9CA3AF' }]}>Quick access for airport checkpoints</Text>
+              <Text style={[styles.docsButtonTitle, { color: '#FFFFFF' }]}>{t.trip.migrationTitle}</Text>
+              <Text style={[styles.docsButtonSubtitle, { color: '#9CA3AF' }]}>{t.trip.migrationSubtitle}</Text>
             </View>
             <Text style={[styles.docsArrow, { color: '#F59E0B' }]}>→</Text>
           </View>
@@ -173,15 +201,22 @@ export default function TripDetailScreen() {
 
       <View style={styles.actions}>
         <Button
-          title="Copy Budget Summary"
+          title={t.trip.editTrip}
+          onPress={handleEdit}
+          variant="primary"
+          fullWidth
+          style={styles.actionButton}
+        />
+        <Button
+          title={t.trip.share}
           onPress={handleShare}
           variant="secondary"
           fullWidth
           style={styles.actionButton}
         />
         <Button
-          title="Edit Trip"
-          onPress={handleEdit}
+          title={trip.archived ? t.trip.unarchiveTrip : t.trip.archiveTrip}
+          onPress={handleArchiveToggle}
           variant="outline"
           fullWidth
           style={styles.actionButton}
