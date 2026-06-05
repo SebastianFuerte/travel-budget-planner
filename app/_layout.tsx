@@ -8,12 +8,21 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useSettingsStore, useSubscriptionStore, useTripStore } from '../src/store';
 import colors from '../src/theme/colors';
 
-// TODO: Replace with your real DSN from https://sentry.io → Project Settings → Client Keys
-Sentry.init({
-  dsn: 'https://6dc6e04a36cc597d86b0ac4e7b490084@o4511452412837888.ingest.us.sentry.io/4511452415131648',
-  enabled: !__DEV__,
-  tracesSampleRate: 0.2,
-});
+const SENTRY_DSN = process.env.EXPO_PUBLIC_SENTRY_DSN;
+
+if (SENTRY_DSN) {
+  Sentry.init({
+    dsn: SENTRY_DSN,
+    enabled: !__DEV__,
+    tracesSampleRate: 0.2,
+    beforeSend(event) {
+      // Strip any user-entered data from error reports
+      if (event.extra) delete event.extra;
+      if (event.user) delete event.user;
+      return event;
+    },
+  });
+}
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
   state = { hasError: false };

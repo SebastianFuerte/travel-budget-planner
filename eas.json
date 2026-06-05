@@ -23,7 +23,7 @@
     "production": {
       "autoIncrement": true,
       "ios": {
-        "enterpriseProvisioning": "universal"
+        "distribution": "store"
       }
     }
   },

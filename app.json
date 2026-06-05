@@ -18,7 +18,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.travelbudget.planner",
       "buildNumber": "1",
-      "privacyPolicyUrl": "https://gist.github.com/SebastianFuerte/0046255174fa1ca9476a652de57dfa4a",
+      "privacyPolicyUrl": "https://sebastianfuerte.github.io/travel-budget-planner/privacy-policy.html",
       "infoPlist": {
         "NSCameraUsageDescription": "Take photos of your travel documents (passport, visa, boarding pass)",
         "NSPhotoLibraryUsageDescription": "Select photos of your travel documents from your library",
