@@ -8,12 +8,12 @@ import Purchases, {
 
 // Product IDs — must match exactly what you create in App Store Connect + RevenueCat
 export const PRODUCT_IDS = {
-  MONTHLY: 'travel_budget_pro_monthly',
-  ANNUAL: 'travel_budget_pro_annual',
+  MONTHLY: 'monthly',
+  ANNUAL: 'yearly',
 } as const;
 
 // Entitlement ID configured in RevenueCat dashboard
-export const ENTITLEMENT_PRO = 'pro';
+export const ENTITLEMENT_PRO = 'Travel Budget Planner Pro';
 
 let isConfigured = false;
 
