@@ -1,20 +1,23 @@
-// src/store/subscriptionStore.ts
-
 import { create } from 'zustand';
 import { Subscription, SubscriptionTier } from '../types';
 import { loadSubscription, saveSubscription } from '../services/storage';
 import { logSubscriptionStarted } from '../services/analytics';
+import {
+  getCustomerInfo,
+  restorePurchases,
+  isProEntitled,
+} from '../services/purchaseService';
 
 interface SubscriptionState {
   subscription: Subscription;
   isLoading: boolean;
-  
-  // Actions
+
   loadSubscription: () => Promise<void>;
   upgradeToPro: (tier: SubscriptionTier) => Promise<void>;
   cancelSubscription: () => Promise<void>;
-  
-  // Helpers
+  restorePurchases: () => Promise<boolean>;
+  syncWithRevenueCat: () => Promise<void>;
+
   isPro: () => boolean;
   canCreateTrip: (currentTripCount: number) => boolean;
   canExportPDF: () => boolean;
@@ -31,45 +34,64 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
   loadSubscription: async () => {
     set({ isLoading: true });
     try {
+      // Check RevenueCat first (source of truth for paid status)
+      const customerInfo = await getCustomerInfo();
+      if (customerInfo && isProEntitled(customerInfo)) {
+        const proSubscription: Subscription = { tier: 'pro', isActive: true };
+        await saveSubscription(proSubscription);
+        set({ subscription: proSubscription, isLoading: false });
+        return;
+      }
+
+      // Fall back to local storage (handles offline + free users)
       const subscription = await loadSubscription();
       set({ subscription, isLoading: false });
-    } catch (error) {
-      console.error('Failed to load subscription:', error);
-      set({ isLoading: false, error: 'Could not verify subscription. Some features may be unavailable.' } as any);
+    } catch {
+      const subscription = await loadSubscription().catch(() => ({ tier: 'free' as SubscriptionTier, isActive: true }));
+      set({ subscription, isLoading: false });
     }
   },
 
+  // Called after a successful purchasePackage() in the paywall
   upgradeToPro: async (tier: SubscriptionTier) => {
-    try {
-      // Mock subscription - en producción esto integraría con RevenueCat, Stripe, etc.
-      const newSubscription: Subscription = {
-        tier,
-        isActive: true,
-        expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year from now
-      };
-      
-      await saveSubscription(newSubscription);
-      set({ subscription: newSubscription });
-      
-      logSubscriptionStarted(tier);
-    } catch (error) {
-      console.error('Failed to upgrade subscription:', error);
-      throw error;
-    }
+    const newSubscription: Subscription = { tier, isActive: true };
+    await saveSubscription(newSubscription);
+    set({ subscription: newSubscription });
+    logSubscriptionStarted(tier);
   },
 
   cancelSubscription: async () => {
+    const free: Subscription = { tier: 'free', isActive: true };
+    await saveSubscription(free);
+    set({ subscription: free });
+  },
+
+  restorePurchases: async (): Promise<boolean> => {
+    set({ isLoading: true });
     try {
-      const newSubscription: Subscription = {
-        tier: 'free',
-        isActive: true,
-      };
-      
-      await saveSubscription(newSubscription);
-      set({ subscription: newSubscription });
-    } catch (error) {
-      console.error('Failed to cancel subscription:', error);
-      throw error;
+      const customerInfo = await restorePurchases();
+      if (customerInfo && isProEntitled(customerInfo)) {
+        await get().upgradeToPro('pro');
+        set({ isLoading: false });
+        return true;
+      }
+      set({ isLoading: false });
+      return false;
+    } catch {
+      set({ isLoading: false });
+      return false;
+    }
+  },
+
+  syncWithRevenueCat: async () => {
+    const customerInfo = await getCustomerInfo();
+    if (!customerInfo) return;
+
+    if (isProEntitled(customerInfo)) {
+      await get().upgradeToPro('pro');
+    } else if (get().isPro()) {
+      // Pro expired — downgrade locally
+      await get().cancelSubscription();
     }
   },
 
@@ -80,15 +102,7 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
     return true;
   },
 
-  canCreateTrip: (_currentTripCount: number) => {
-    return true;
-  },
-
-  canExportPDF: () => {
-    return true;
-  },
-
-  canAddDocument: (_currentDocCount: number) => {
-    return true;
-  },
+  canCreateTrip: (_currentTripCount: number) => true,
+  canExportPDF: () => true,
+  canAddDocument: (_currentDocCount: number) => true,
 }));

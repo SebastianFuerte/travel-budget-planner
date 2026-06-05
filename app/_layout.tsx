@@ -2,6 +2,7 @@
 
 import * as Sentry from '@sentry/react-native';
 import { Stack } from 'expo-router';
+import { configurePurchases } from '../src/services/purchaseService';
 import React, { Component, ReactNode, useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -48,6 +49,7 @@ function RootLayout() {
 
   useEffect(() => {
     const init = async () => {
+      configurePurchases();
       await Promise.all([loadTrips(), loadSubscription(), loadSettings()]);
       setIsReady(true);
     };
