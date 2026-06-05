@@ -13,14 +13,14 @@ import { useSubscriptionStore } from '../src/store/subscriptionStore';
 import { getOfferings, purchasePackage } from '../src/services/purchaseService';
 
 const FEATURES = [
-  { icon: '✈️', text: 'Unlimited trips — plan as many as you want' },
-  { icon: '📁', text: 'Unlimited document storage per trip' },
-  { icon: '📄', text: 'PDF export for any trip' },
-  { icon: '🌍', text: '150+ destinations with detailed budgets' },
-  { icon: '🛂', text: 'Full visa & entry requirements database' },
-  { icon: '✈️', text: 'Migration Mode for border control' },
-  { icon: '💱', text: '15 currencies with offline rates' },
+  { icon: '✈️', text: 'Unlimited trips — free tier is limited to 1' },
+  { icon: '📁', text: 'Unlimited documents per trip — free tier is limited to 3' },
+  { icon: '🛂', text: 'Full visa & entry requirements for every destination' },
+  { icon: '🌍', text: '150+ destinations with min / avg / max budgets' },
+  { icon: '🛫', text: 'Migration Mode — all docs in one screen at the airport' },
+  { icon: '💱', text: '15 currencies with offline exchange rates' },
   { icon: '🔒', text: '100% offline — your data never leaves your device' },
+  { icon: '⭐', text: 'Priority access to new features' },
 ];
 
 export default function PaywallScreen() {

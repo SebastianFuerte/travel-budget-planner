@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { Subscription, SubscriptionTier } from '../types';
+import { FREE_TRIP_LIMIT, FREE_DOC_LIMIT } from '../utils/constants';
 import { loadSubscription, saveSubscription } from '../services/storage';
 import { logSubscriptionStarted } from '../services/analytics';
 import {
@@ -102,7 +103,13 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
     return true;
   },
 
-  canCreateTrip: (_currentTripCount: number) => true,
-  canExportPDF: () => true,
-  canAddDocument: (_currentDocCount: number) => true,
+  canCreateTrip: (currentTripCount: number) => {
+    if (get().isPro()) return true;
+    return currentTripCount < FREE_TRIP_LIMIT;
+  },
+  canExportPDF: () => get().isPro(),
+  canAddDocument: (currentDocCount: number) => {
+    if (get().isPro()) return true;
+    return currentDocCount < FREE_DOC_LIMIT;
+  },
 }));
